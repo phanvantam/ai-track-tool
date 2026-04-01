@@ -1,41 +1,42 @@
-import { AppShell, Badge, Container, Group, Stack, Text, Title } from "@mantine/core";
+import { AppShell, Group, Text, Title } from "@mantine/core";
 import type { ReactNode } from "react";
 
 interface LayoutProps {
-  header: ReactNode;
-  toolbar: ReactNode;
+  sidebar?: ReactNode;
+  headerActions?: ReactNode;
   children: ReactNode;
 }
 
-export function Layout({ header, toolbar, children }: LayoutProps) {
+export function Layout({ sidebar, headerActions, children }: LayoutProps) {
   return (
-    <AppShell padding="md" header={{ height: 214 }}>
-      <AppShell.Header className="shell-header">
-        <Container size="xl" h="100%" py="md">
-          <Stack gap="md" h="100%" justify="center">
-            <Group justify="space-between" align="flex-start">
-              <Stack gap={4}>
-                <Text size="xs" fw={700} tt="uppercase" c="violet.2">
-                  AI Track
-                </Text>
-                <Title order={2} c="white">
-                  Theo dõi thay đổi AI bằng giao diện web
-                </Title>
-                <Text c="gray.3" size="sm">
-                  Xem diff, rollback và quản lý nhiều project trong cùng một màn hình.
-                </Text>
-              </Stack>
-              <Badge radius="xl" variant="light" color="violet">
-                Local only
-              </Badge>
-            </Group>
-            {header}
-            {toolbar}
-          </Stack>
-        </Container>
+    <AppShell
+      padding={0}
+      header={{ height: 56 }}
+      navbar={sidebar ? { width: 300, breakpoint: "sm", collapsed: { desktop: false, mobile: true } } : undefined}
+    >
+      <AppShell.Header className="app-header">
+        <Group h="100%" px="lg" justify="space-between">
+          <Group gap="sm">
+            <Text size="sm" fw={700} tt="uppercase" c="violet.4" className="logo-text">
+              AI Track
+            </Text>
+            <Title order={4} fw={600} className="app-title">
+              Change Viewer
+            </Title>
+          </Group>
+          <Group gap="sm" wrap="nowrap">
+            {headerActions}
+            <Text size="xs" c="dimmed">
+              Local only
+            </Text>
+          </Group>
+        </Group>
       </AppShell.Header>
-      <AppShell.Main>
-        <Container size="xl">{children}</Container>
+
+      {sidebar ? <AppShell.Navbar className="app-sidebar">{sidebar}</AppShell.Navbar> : null}
+
+      <AppShell.Main className="app-main">
+        {children}
       </AppShell.Main>
     </AppShell>
   );

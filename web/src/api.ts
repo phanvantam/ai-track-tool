@@ -1,20 +1,35 @@
-export type ChangeType = "added" | "modified" | "deleted";
+export type ChangeType = "added" | "modified" | "deleted" | "renamed";
 export type WatchStatus = "idle" | "watching" | "refreshing" | "error";
 
 export interface ChangeEntry {
   path: string;
   type: ChangeType;
   isBinary: boolean;
+  oldPath?: string;
 }
 
 export interface SessionState {
   id: string;
   targetPath: string;
+  storagePath: string;
   snapshotId: string;
   watchStatus: WatchStatus;
   changeCount: number;
   lastError: string | null;
   changes: ChangeEntry[];
+}
+
+export interface AppConfig {
+  storageDir: string | null;
+}
+
+export interface ConfigPayload {
+  config: AppConfig;
+  defaults: {
+    tempStorageDir: string;
+    effectiveStorageDir: string;
+    configFilePath: string;
+  };
 }
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -41,6 +56,20 @@ export async function addSession(path: string): Promise<SessionState> {
   );
 
   return payload.session;
+}
+
+export async function getConfig(): Promise<ConfigPayload> {
+  return readJson(await fetch("/api/config"));
+}
+
+export async function updateConfig(storageDir: string | null): Promise<ConfigPayload> {
+  return readJson(
+    await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ storageDir }),
+    }),
+  );
 }
 
 export async function getChanges(sessionId: string): Promise<ChangeEntry[]> {
@@ -91,13 +120,47 @@ export async function refreshSession(sessionId: string): Promise<SessionState> {
   return payload.session;
 }
 
+export async function pauseSession(sessionId: string): Promise<SessionState> {
+  const payload = await readJson<{ session: SessionState }>(
+    await fetch("/api/sessions/pause", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    }),
+  );
+
+  return payload.session;
+}
+
+export async function resumeSession(sessionId: string): Promise<SessionState> {
+  const payload = await readJson<{ session: SessionState }>(
+    await fetch("/api/sessions/resume", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    }),
+  );
+
+  return payload.session;
+}
+
+export async function removeSession(sessionId: string): Promise<void> {
+  await readJson<{ success: boolean }>(
+    await fetch("/api/sessions", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    }),
+  );
+}
+
 export function subscribeSessions(onUpdate: () => void, onError: (message: string) => void): () => void {
   const source = new EventSource("/events");
   source.addEventListener("sessions", () => {
     onUpdate();
   });
   source.onerror = () => {
-    onError("Ket noi realtime loi.");
+    onError("Mất kết nối realtime với server.");
   };
 
   return () => {

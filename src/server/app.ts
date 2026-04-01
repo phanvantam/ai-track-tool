@@ -24,7 +24,7 @@ async function resolveAvailablePort(startPort: number): Promise<number> {
     }
   }
 
-  throw new Error("Khong tim thay cong trong");
+  throw new Error("Không tìm thấy cổng trống");
 }
 
 interface StartWebServerOptions {
@@ -42,6 +42,8 @@ export async function startWebServer(initialPaths: string[], options: StartWebSe
       sseHub.broadcast("sessions", { sessions: sessionManager.listSessions() });
     },
   });
+
+  await sessionManager.initialize();
 
   for (const targetPath of initialPaths) {
     await sessionManager.addSession(targetPath);

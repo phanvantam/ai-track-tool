@@ -74,7 +74,7 @@ describe("watch helpers", () => {
     await watchPromise;
 
     const state = await readState(targetPath);
-    const copied = await readFile(path.join(targetPath, ".ai-track", "snapshots", state.activeSnapshotId, "files", "base.txt"), "utf8");
+    const copied = await readFile(path.join(state.storagePath, "snapshots", state.activeSnapshotId, "files", "base.txt"), "utf8");
 
     expect(copied).toBe("base\n");
   });

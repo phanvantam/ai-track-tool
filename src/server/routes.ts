@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 
+import { getConfigDefaults, readAppConfig, writeAppConfig } from "../core/config.js";
 import { renderDiffForPath } from "../core/diff.js";
 import type { SessionManager } from "./session.js";
 import type { SseHub } from "./events.js";
@@ -40,11 +41,34 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       return;
     }
 
+    if (request.method === "GET" && requestUrl.pathname === "/api/config") {
+      const config = await readAppConfig();
+      writeJson(response, 200, {
+        config,
+        defaults: getConfigDefaults(config),
+      });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/config") {
+      const body = (await readJsonBody(request)) as { storageDir?: string | null } | null;
+      const currentConfig = await readAppConfig();
+      const config = await writeAppConfig({ 
+        ...currentConfig,
+        storageDir: body?.storageDir?.trim() || null 
+      });
+      writeJson(response, 200, {
+        config,
+        defaults: getConfigDefaults(config),
+      });
+      return;
+    }
+
     if (request.method === "POST" && requestUrl.pathname === "/api/sessions") {
       const body = (await readJsonBody(request)) as { path?: string } | null;
 
       if (!body?.path) {
-        throw new Error("Thieu path");
+        throw new Error("Thiếu path");
       }
 
       const session = await options.sessionManager.addSession(body.path);
@@ -56,7 +80,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       const sessionId = requestUrl.searchParams.get("sessionId");
 
       if (!sessionId) {
-        throw new Error("Thieu sessionId");
+        throw new Error("Thiếu sessionId");
       }
 
       writeJson(response, 200, { changes: options.sessionManager.getSession(sessionId).changes });
@@ -68,7 +92,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       const relativePath = requestUrl.searchParams.get("path");
 
       if (!sessionId || !relativePath) {
-        throw new Error("Thieu sessionId hoac path");
+        throw new Error("Thiếu sessionId hoặc path");
       }
 
       const session = options.sessionManager.getSession(sessionId);
@@ -81,7 +105,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       const body = (await readJsonBody(request)) as { sessionId?: string; path?: string } | null;
 
       if (!body?.sessionId || !body.path) {
-        throw new Error("Thieu sessionId hoac path");
+        throw new Error("Thiếu sessionId hoặc path");
       }
 
       const session = await options.sessionManager.rollback(body.sessionId, body.path);
@@ -93,7 +117,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       const body = (await readJsonBody(request)) as { sessionId?: string } | null;
 
       if (!body?.sessionId) {
-        throw new Error("Thieu sessionId");
+        throw new Error("Thiếu sessionId");
       }
 
       const session = await options.sessionManager.resetSnapshot(body.sessionId);
@@ -105,11 +129,47 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       const body = (await readJsonBody(request)) as { sessionId?: string } | null;
 
       if (!body?.sessionId) {
-        throw new Error("Thieu sessionId");
+        throw new Error("Thiếu sessionId");
       }
 
       const session = await options.sessionManager.refreshSession(body.sessionId);
       writeJson(response, 200, { session });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/sessions/pause") {
+      const body = (await readJsonBody(request)) as { sessionId?: string } | null;
+
+      if (!body?.sessionId) {
+        throw new Error("Thiếu sessionId");
+      }
+
+      const session = await options.sessionManager.pauseSession(body.sessionId);
+      writeJson(response, 200, { session });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/sessions/resume") {
+      const body = (await readJsonBody(request)) as { sessionId?: string } | null;
+
+      if (!body?.sessionId) {
+        throw new Error("Thiếu sessionId");
+      }
+
+      const session = await options.sessionManager.resumeSession(body.sessionId);
+      writeJson(response, 200, { session });
+      return;
+    }
+
+    if (request.method === "DELETE" && requestUrl.pathname === "/api/sessions") {
+      const body = (await readJsonBody(request)) as { sessionId?: string } | null;
+
+      if (!body?.sessionId) {
+        throw new Error("Thiếu sessionId");
+      }
+
+      await options.sessionManager.removeSession(body.sessionId);
+      writeJson(response, 200, { success: true });
       return;
     }
 

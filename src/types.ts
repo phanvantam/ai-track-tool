@@ -1,4 +1,4 @@
-export type ChangeType = "added" | "modified" | "deleted";
+export type ChangeType = "added" | "modified" | "deleted" | "renamed";
 
 export interface SnapshotFileEntry {
   path: string;
@@ -38,6 +38,7 @@ export interface ChangeEntry {
   isBinary: boolean;
   beforeAbsolutePath: string | null;
   afterAbsolutePath: string | null;
+  oldPath?: string; // For renamed files
 }
 
 export type WatchStatus = "idle" | "watching" | "refreshing" | "error";
@@ -49,6 +50,7 @@ export interface WatchController {
 export interface SessionSummary {
   id: string;
   targetPath: string;
+  storagePath: string;
   snapshotId: string;
   watchStatus: WatchStatus;
   changeCount: number;

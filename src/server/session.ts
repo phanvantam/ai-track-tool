@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { readAppConfig, writeAppConfig } from "../core/config.js";
 import { getChanges } from "../core/compare.js";
 import { rollbackFile } from "../core/rollback.js";
 import { ensureSnapshot, normalizeTargetPath, resetSnapshot } from "../core/snapshot.js";
@@ -16,6 +17,18 @@ export class SessionManager {
 
   public constructor(private readonly options: SessionManagerOptions = {}) {}
 
+  public async initialize(): Promise<void> {
+    const config = await readAppConfig();
+
+    for (const targetPath of config.projects) {
+      try {
+        await this.addSession(targetPath);
+      } catch (error) {
+        console.error(`Failed to restore session for ${targetPath}:`, error);
+      }
+    }
+  }
+
   public async addSession(targetPathInput: string): Promise<SessionState> {
     const targetPath = await normalizeTargetPath(targetPathInput);
 
@@ -31,6 +44,7 @@ export class SessionManager {
     });
     await session.initialize();
     this.sessions.set(session.state.id, session);
+    await this.persistProjects();
     return session.state;
   }
 
@@ -42,7 +56,7 @@ export class SessionManager {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
-      throw new Error(`Khong tim thay session: ${sessionId}`);
+      throw new Error(`Không tìm thấy session: ${sessionId}`);
     }
 
     return session.state;
@@ -66,6 +80,25 @@ export class SessionManager {
     return session.state;
   }
 
+  public async pauseSession(sessionId: string): Promise<SessionState> {
+    const session = this.requireSession(sessionId);
+    session.pause();
+    return session.state;
+  }
+
+  public async resumeSession(sessionId: string): Promise<SessionState> {
+    const session = this.requireSession(sessionId);
+    await session.resume();
+    return session.state;
+  }
+
+  public async removeSession(sessionId: string): Promise<void> {
+    const session = this.requireSession(sessionId);
+    session.stop();
+    this.sessions.delete(sessionId);
+    await this.persistProjects();
+  }
+
   public stopAll(): void {
     for (const session of this.sessions.values()) {
       session.stop();
@@ -78,10 +111,20 @@ export class SessionManager {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
-      throw new Error(`Khong tim thay session: ${sessionId}`);
+      throw new Error(`Không tìm thấy session: ${sessionId}`);
     }
 
     return session;
+  }
+
+  private async persistProjects(): Promise<void> {
+    try {
+      const config = await readAppConfig();
+      const projects = [...this.sessions.values()].map((session) => session.targetPath);
+      await writeAppConfig({ ...config, projects });
+    } catch (error) {
+      console.error("Failed to persist projects:", error);
+    }
   }
 }
 
@@ -97,6 +140,7 @@ class ManagedSession {
     this.state = {
       id: randomUUID(),
       targetPath,
+      storagePath: "unknown",
       snapshotId: "unknown",
       watchStatus: "idle",
       changeCount: 0,
@@ -132,6 +176,7 @@ class ManagedSession {
     try {
       const trackedState = await ensureSnapshot(this.targetPath);
       const changes = await getChanges(this.targetPath);
+      this.state.storagePath = trackedState.storagePath;
       this.state.snapshotId = trackedState.activeSnapshotId;
       this.state.changes = changes;
       this.state.changeCount = changes.length;
@@ -155,6 +200,7 @@ class ManagedSession {
 
   public async resetSnapshot(): Promise<void> {
     const state = await resetSnapshot(this.targetPath);
+    this.state.storagePath = state.storagePath;
     this.state.snapshotId = state.activeSnapshotId;
     await this.refresh();
   }
@@ -163,6 +209,33 @@ class ManagedSession {
     this.watcher?.stop();
     this.watcher = null;
     this.state.watchStatus = "idle";
+    this.emit();
+  }
+
+  public pause(): void {
+    this.watcher?.stop();
+    this.watcher = null;
+    this.state.watchStatus = "idle";
+    this.emit();
+  }
+
+  public async resume(): Promise<void> {
+    if (this.watcher) {
+      return;
+    }
+
+    await this.refresh();
+    this.watcher = createWatcher(this.targetPath, {
+      onRefreshNeeded: async () => {
+        await this.refresh();
+      },
+      onError: (error) => {
+        this.state.watchStatus = "error";
+        this.state.lastError = error.message;
+        this.emit();
+      },
+    });
+    this.state.watchStatus = "watching";
     this.emit();
   }
 

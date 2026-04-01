@@ -10,7 +10,7 @@ import { runWebCommand } from "./commands/web.js";
 
 const program = new Command();
 
-program.name("ai-track").description("Theo doi thay doi file do AI gay ra ma khong can git.");
+program.name("ai-track").description("Theo dõi thay đổi file do AI gây ra mà không cần git.");
 
 program
   .command("start")
@@ -42,12 +42,8 @@ program
 
 program
   .command("web")
-  .requiredOption("--path <dir>", "Thu muc can hien thi tren web", collectOption, [])
+  .option("--path <dir>", "Thu muc can hien thi tren web", collectOption, [])
   .action(async (options: { path: string[] }) => {
-    if (options.path.length === 0) {
-      throw new Error("Can it nhat mot --path");
-    }
-
     await runWebCommand(options.path);
   });
 

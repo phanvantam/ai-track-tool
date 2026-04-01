@@ -14,10 +14,11 @@ describe("createSnapshot", () => {
 
     const state = await createSnapshot(targetPath);
     const savedState = await readState(targetPath);
-    const manifest = await readManifest(targetPath, state.activeSnapshotId);
-    const copiedFile = await readFile(path.join(targetPath, ".ai-track", "snapshots", state.activeSnapshotId, "files", "note.txt"), "utf8");
+    const manifest = await readManifest(state.storagePath, state.activeSnapshotId);
+    const copiedFile = await readFile(path.join(state.storagePath, "snapshots", state.activeSnapshotId, "files", "note.txt"), "utf8");
 
     expect(savedState.activeSnapshotId).toBe(state.activeSnapshotId);
+    expect(savedState.storagePath).toBe(state.storagePath);
     expect(manifest.files).toHaveLength(1);
     expect(manifest.files[0]?.path).toBe("note.txt");
     expect(copiedFile).toBe("hello\n");

@@ -26,7 +26,7 @@ export async function renderDiffForPath(changes: ChangeEntry[], relativePath: st
   const change = changes.find((item) => item.path === relativePath);
 
   if (!change) {
-    throw new Error(`Khong tim thay diff cho file: ${relativePath}`);
+    throw new Error(`Không tìm thấy diff cho file: ${relativePath}`);
   }
 
   return renderChangeDiff(change);
@@ -34,7 +34,7 @@ export async function renderDiffForPath(changes: ChangeEntry[], relativePath: st
 
 export async function renderDiffReport(changes: ChangeEntry[]): Promise<string> {
   if (changes.length === 0) {
-    return "Khong co thay doi.";
+    return "Không có thay đổi.";
   }
 
   const rendered = await Promise.all(
