@@ -2,20 +2,20 @@
 
 ## 1. Lam ro yeu cau
 
-- [-] Xac nhan runtime se dung cho CLI.
-- [ ] Xac nhan `rollback <file>` nhan duong dan tu root `--path`.
-- [ ] Xac nhan chi ho tro 1 snapshot active o pha dau.
-- [ ] Xac nhan `.ai-track/` luu canh project tool hay canh `--path`.
-- [ ] Xac nhan muc tieu `ui` phai co ngay trong phase dau.
+- [x] Xac nhan runtime se dung cho CLI.
+- [x] Xac nhan `rollback <file>` nhan duong dan tu root `--path`.
+- [x] Xac nhan chi ho tro 1 snapshot active o pha dau.
+- [x] Xac nhan `.ai-track/` luu canh project tool hay canh `--path`.
+- [x] Xac nhan muc tieu `ui` phai co ngay trong phase dau.
 
 ## 2. Khoi tao project
 
-- [ ] Tao `package.json` cho CLI.
-- [ ] Them `tsconfig.json` cho TypeScript.
-- [ ] Tao cau truc thu muc `src/` va `tests/`.
-- [ ] Cau hinh script `build`, `test`, `dev`.
-- [ ] Chon thu vien parse lenh CLI.
-- [ ] Chon thu vien TUI terminal.
+- [x] Tao `package.json` cho CLI.
+- [x] Them `tsconfig.json` cho TypeScript.
+- [x] Tao cau truc thu muc `src/` va `tests/`.
+- [x] Cau hinh script `build`, `test`, `dev`.
+- [x] Chon thu vien parse lenh CLI.
+- [x] Chon thu vien TUI terminal.
 
 ## 3. Nen tang he thong file
 
@@ -114,4 +114,14 @@
 
 | Step | Status | Notes | Timestamp |
 |------|--------|-------|-----------|
-| 1.1  | [-]    | Dang cho user chot runtime | 2026-04-01 20:49 |
+| 1.1  | [x]    | Chot Node.js + TypeScript | 2026-04-01 20:49 |
+| 1.2  | [x]    | `rollback` nhan path tu `--path` | 2026-04-01 20:49 |
+| 1.3  | [x]    | Phase dau chi giu 1 snapshot active | 2026-04-01 20:49 |
+| 1.4  | [x]    | Luu `.ai-track/` canh `--path` | 2026-04-01 20:49 |
+| 1.5  | [x]    | `ui` giu trong phase dau | 2026-04-01 20:49 |
+| 2.1  | [x]    | Da tao `package.json` | 2026-04-01 20:53 |
+| 2.2  | [x]    | Da tao `tsconfig.json` | 2026-04-01 20:53 |
+| 2.3  | [x]    | Da tao `src/` va `tests/` | 2026-04-01 20:53 |
+| 2.4  | [x]    | Da cau hinh `build`, `test`, `dev` | 2026-04-01 20:53 |
+| 2.5  | [x]    | Chon `commander` | 2026-04-01 20:53 |
+| 2.6  | [x]    | Chon `blessed` | 2026-04-01 20:53 |
