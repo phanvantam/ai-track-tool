@@ -2,17 +2,12 @@
   "name": "ai-track-tool",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "web"
-  ],
   "type": "module",
   "bin": {
     "ai-track": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:web": "npm run build --workspace web",
-    "build:all": "npm run build && npm run build:web",
     "dev": "tsx src/cli.ts",
     "test": "vitest run"
   },

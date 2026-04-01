@@ -1,0 +1,89 @@
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(124, 58, 237, 0.2), transparent 28%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 22%),
+    #0b1020;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.shell-header {
+  background:
+    linear-gradient(135deg, rgba(18, 24, 38, 0.98), rgba(30, 27, 75, 0.92));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.toolbar-card,
+.panel-card,
+.status-card,
+.empty-panel {
+  backdrop-filter: blur(12px);
+  background: rgba(11, 16, 32, 0.68);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.change-item {
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    background-color 120ms ease;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.change-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(167, 139, 250, 0.55);
+}
+
+.change-item.is-selected {
+  background: rgba(91, 33, 182, 0.24);
+  border-color: rgba(167, 139, 250, 0.7);
+}
+
+.copy-button {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.diff-block {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.diff-line {
+  margin: 0;
+  padding: 6px 10px;
+  background: rgba(8, 12, 24, 0.78);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.diff-line.is-header {
+  color: #d8b4fe;
+  background: rgba(88, 28, 135, 0.2);
+}
+
+.diff-line.is-meta {
+  color: #93c5fd;
+  background: rgba(30, 64, 175, 0.2);
+}
+
+.diff-line.is-added {
+  color: #bbf7d0;
+  background: rgba(20, 83, 45, 0.38);
+}
+
+.diff-line.is-removed {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.38);
+}
+
+@media (max-width: 62em) {
+  .shell-header {
+    position: static;
+  }
+}

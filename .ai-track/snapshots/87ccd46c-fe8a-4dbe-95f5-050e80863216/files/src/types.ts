@@ -45,21 +45,3 @@ export type WatchStatus = "idle" | "watching" | "refreshing" | "error";
 export interface WatchController {
   stop: () => void;
 }
-
-export interface SessionSummary {
-  id: string;
-  targetPath: string;
-  snapshotId: string;
-  watchStatus: WatchStatus;
-  changeCount: number;
-  lastError: string | null;
-}
-
-export interface SessionState extends SessionSummary {
-  changes: ChangeEntry[];
-}
-
-export interface WebSession {
-  summary: SessionSummary;
-  stop: () => void;
-}
