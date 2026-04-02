@@ -11,7 +11,7 @@ interface SettingsModalProps {
 }
 
 /**
- * Modal cấu hình bằng AntD.
+ * Modal cấu hình.
  */
 export function SettingsModal({
   isOpen,
@@ -49,8 +49,14 @@ export function SettingsModal({
       destroyOnHidden
     >
       <Flex vertical gap="middle">
+        {/* Storage directory */}
         <div>
-          <Typography.Text type="secondary">Storage Directory (để trống = mặc định)</Typography.Text>
+          <Typography.Text strong>
+            Storage Directory
+          </Typography.Text>
+          <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>
+            Để trống để sử dụng thư mục mặc định của hệ thống.
+          </Typography.Text>
           <Input
             placeholder="/path/to/storage"
             value={storageDirInput}
@@ -59,7 +65,7 @@ export function SettingsModal({
           />
         </div>
 
-        <Flex justify="end" gap="small">
+        <Flex justify="end" gap="small" style={{ marginTop: 8 }}>
           <Button onClick={onClose} disabled={loading}>
             Hủy
           </Button>

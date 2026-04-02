@@ -2,7 +2,8 @@ import path from "node:path";
 
 import { normalizePathForComparison } from "./case-sensitivity.js";
 import { materializeSnapshotFile } from "./delta.js";
-import { attachDirectoryRenames } from "./directory-rename.js";
+import { collapseBulkDirectoryChanges } from "./directory-rename.js";
+import { countDiffLines, renderChangeDiff } from "./diff.js";
 import { readManifest, readState } from "./state.js";
 import { scanCurrentFiles } from "./snapshot.js";
 import type { ChangeEntry, CurrentFileEntry, FilesystemConfig, SnapshotFileEntry } from "../types.js";
@@ -33,6 +34,15 @@ function mapSnapshotFilesByHash(files: SnapshotFileEntry[]): Map<string, Snapsho
     map.set(file.hash, existing);
   }
   return map;
+}
+
+/**
+ * Lấy top-level directory segment từ path.
+ * Trả về null nếu file ở root (không có '/').
+ */
+function getTopLevelDir(filePath: string): string | null {
+  const firstSlash = filePath.indexOf("/");
+  return firstSlash === -1 ? null : filePath.substring(0, firstSlash);
 }
 
 export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]> {
@@ -128,5 +138,27 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
     });
   }
 
-  return attachDirectoryRenames(changes.sort((left, right) => left.path.localeCompare(right.path)));
+  // Gom folder nhiều file thành 1 entry per (dir, type)
+  const collapsed = collapseBulkDirectoryChanges(changes);
+
+  // Tính insertions/deletions CHỈ cho entries còn lại sau collapse
+  // (tránh tính diff cho hàng ngàn file thuộc bulk directory)
+  const withStats = await Promise.all(
+    collapsed.map(async (change) => {
+      // Entry đã collapse (gom nhóm) hoặc binary → không cần tính diff
+      if (change.collapsedCount || change.isBinary) {
+        return change;
+      }
+
+      try {
+        const diffText = await renderChangeDiff(change);
+        const stats = countDiffLines(diffText);
+        return { ...change, ...stats };
+      } catch {
+        return change;
+      }
+    }),
+  );
+
+  return withStats;
 }

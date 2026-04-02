@@ -4,27 +4,36 @@ Tool theo dõi thay đổi file do AI gây ra mà không cần git.
 
 ## Cách dùng chính
 
+### 1. Dành cho người dùng (Sử dụng bản build sẵn)
 ```bash
 npm run build:web
 npm run dev -- web
 ```
 
-- `web` tự tạo snapshot nếu chưa có state.
+### 2. Dành cho phát triển (Tự động cập nhật giao diện)
+Mở 2 cửa sổ terminal và chạy song song:
+- **Terminal 1**: `npm run watch:web` (Tự động build lại web khi đổi code src)
+- **Terminal 2**: `npm run dev -- web` (Chạy server hiển thị giao diện)
+
+---
+
 - `web` khởi động server local tại `http://127.0.0.1:4317` (tự tìm port nếu bận).
 - Không cần truyền `--path`, thêm project trực tiếp trên giao diện.
 - Web UI hỗ trợ nhiều project trong cùng một phiên.
 - Web UI tự làm mới khi file thay đổi qua SSE realtime.
-- Web UI cho phép rollback, tạo mốc theo dõi mới, xem history, reflog, lock, FSCK, GC.
 - Web UI hỗ trợ gắn tag, note và so sánh snapshot ngay trên giao diện.
+- Giao diện Premium Light Mode mặc định (Inter + JetBrains Mono).
 
 ## Giao diện web
 
 Giao diện quản trị hiện đại, tối giản:
 
+- **Thiết kế**: Premium Light Mode, Glassmorphism, Micro-animations.
+- **Thông báo**: Hiển thị tập trung ở giữa phía trên màn hình (Top Center).
+- **Thanh công cụ**: Hiển thị đầy đủ các nút chức năng (Thêm, Settings, Refresh, Chạy/Dừng, Xóa) với màu sắc phân biệt.
 - **Sidebar trái**: danh sách projects, trạng thái watcher, form thêm project mới.
 - **Cột giữa**: cây thư mục file thay đổi, phân loại folder, badge loại thay đổi (+, ~, -).
-- **Cột phải**: tabs cho diff, history, health, reflog.
-- Hỗ trợ dark theme, font Inter + JetBrains Mono.
+- **Cột phải**: tabs cho diff (hỗ trợ copy, fullscreen), history, health, reflog.
 
 ## Lệnh khác
 

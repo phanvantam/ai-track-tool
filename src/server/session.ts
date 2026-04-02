@@ -22,7 +22,7 @@ interface SessionManagerOptions {
 export class SessionManager {
   private readonly sessions = new Map<string, ManagedSession>();
 
-  public constructor(private readonly options: SessionManagerOptions = {}) {}
+  public constructor(private readonly options: SessionManagerOptions = {}) { }
 
   public async initialize(): Promise<void> {
     const config = await readAppConfig();
@@ -294,23 +294,38 @@ class ManagedSession {
   }
 
   public async getSnapshotDiff(fromSnapshotId: string, toSnapshotId: string): Promise<SnapshotDiffEntry[]> {
-    const storagePath = (await readState(this.targetPath)).storagePath;
-    const fromManifest = await getSnapshotManifestById(storagePath, fromSnapshotId);
-    const toManifest = await getSnapshotManifestById(storagePath, toSnapshotId);
-    const manifestDiffs = diffSnapshotManifests(fromManifest, toManifest);
+    try {
+      const storagePath = (await readState(this.targetPath)).storagePath;
+      const fromManifest = await getSnapshotManifestById(storagePath, fromSnapshotId);
+      const toManifest = await getSnapshotManifestById(storagePath, toSnapshotId);
+      const manifestDiffs = diffSnapshotManifests(fromManifest, toManifest);
 
-    return Promise.all(manifestDiffs.map(async (entry) => {
-      const diffText = await renderSnapshotDiffForPath(storagePath, fromSnapshotId, toSnapshotId, entry.path);
-      return {
-        ...entry,
-        ...countDiffLines(diffText),
-      };
-    }));
+      return Promise.all(manifestDiffs.map(async (entry) => {
+        const diffText = await renderSnapshotDiffForPath(storagePath, fromSnapshotId, toSnapshotId, entry.path);
+        return {
+          ...entry,
+          ...countDiffLines(diffText),
+        };
+      }));
+    } catch (error) {
+      // Snapshot bị xóa trên disk nhưng vẫn còn trong state → trả về rỗng
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return [];
+      }
+      throw error;
+    }
   }
 
   public async getSnapshotFileDiff(fromSnapshotId: string, toSnapshotId: string, relativePath: string): Promise<string> {
-    const storagePath = (await readState(this.targetPath)).storagePath;
-    return renderSnapshotDiffForPath(storagePath, fromSnapshotId, toSnapshotId, relativePath);
+    try {
+      const storagePath = (await readState(this.targetPath)).storagePath;
+      return renderSnapshotDiffForPath(storagePath, fromSnapshotId, toSnapshotId, relativePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return "Snapshot không tồn tại trên disk (đã bị xóa).";
+      }
+      throw error;
+    }
   }
 
   public async runFsck(repair = false): Promise<FSCKReport> {
@@ -393,7 +408,7 @@ class ManagedSession {
 }
 
 function buildHistoryEntries(
-  manifests: Array<{ snapshotId: string; parentSnapshotId?: string | null; createdAt: string; summary?: string; files: Array<unknown> }>,
+  manifests: Array<{ snapshotId: string; parentSnapshotId?: string | null; createdAt: string; summary?: string; files: Array<{ path: string; hash: string }> }>,
   activeSnapshotId: string,
   tags: SnapshotTag[],
   notes: SnapshotAnnotation[],
@@ -407,14 +422,49 @@ function buildHistoryEntries(
     tagsBySnapshot.set(tag.snapshotId, existing.sort((left, right) => left.localeCompare(right)));
   }
 
-  return manifests.map((manifest) => ({
-    snapshotId: manifest.snapshotId,
-    parentSnapshotId: manifest.parentSnapshotId ?? null,
-    createdAt: manifest.createdAt,
-    summary: manifest.summary,
-    fileCount: manifest.files.length,
-    isActive: manifest.snapshotId === activeSnapshotId,
-    tags: tagsBySnapshot.get(manifest.snapshotId) ?? [],
-    note: notesBySnapshot.get(manifest.snapshotId) ?? null,
-  }));
+  // Xây file hash map cho mỗi snapshot để tính diffStats với parent
+  const fileHashMaps = new Map<string, Map<string, string>>();
+  for (const manifest of manifests) {
+    const hashMap = new Map<string, string>();
+    for (const file of manifest.files) {
+      hashMap.set(file.path, file.hash);
+    }
+    fileHashMaps.set(manifest.snapshotId, hashMap);
+  }
+
+  return manifests.map((manifest) => {
+    // Tính diffStats bằng cách so sánh hash với parent
+    let diffStats: { added: number; modified: number; deleted: number } | undefined;
+    const parentId = manifest.parentSnapshotId;
+    if (parentId) {
+      const parentFiles = fileHashMaps.get(parentId);
+      const currentFiles = fileHashMaps.get(manifest.snapshotId)!;
+      if (parentFiles) {
+        let added = 0;
+        let modified = 0;
+        let deleted = 0;
+        for (const [path, hash] of currentFiles) {
+          const parentHash = parentFiles.get(path);
+          if (!parentHash) added++;
+          else if (parentHash !== hash) modified++;
+        }
+        for (const path of parentFiles.keys()) {
+          if (!currentFiles.has(path)) deleted++;
+        }
+        diffStats = { added, modified, deleted };
+      }
+    }
+
+    return {
+      snapshotId: manifest.snapshotId,
+      parentSnapshotId: manifest.parentSnapshotId ?? null,
+      createdAt: manifest.createdAt,
+      summary: manifest.summary,
+      fileCount: manifest.files.length,
+      isActive: manifest.snapshotId === activeSnapshotId,
+      tags: tagsBySnapshot.get(manifest.snapshotId) ?? [],
+      note: notesBySnapshot.get(manifest.snapshotId) ?? null,
+      diffStats,
+    };
+  });
 }

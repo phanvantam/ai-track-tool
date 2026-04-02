@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { notifications } from "./lib/notify";
-import { removeSession as apiRemoveSession, type SessionState } from "./api";
+import { 
+  removeSession as apiRemoveSession, 
+  runFsck as apiRunFsck,
+  runGarbageCollection as apiRunGarbageCollection,
+  type SessionState 
+} from "./api";
 
 import {
   useSessionManager,
@@ -48,6 +53,8 @@ export default function App() {
   const [addProgress, setAddProgress] = useState(12);
   const [addingSession, setAddingSession] = useState(false);
   const [removeConfirmOpened, setRemoveConfirmOpened] = useState(false);
+  const [fsckReport, setFsckReport] = useState<any>(null);
+  const [gcReport, setGcReport] = useState<any>(null);
 
   const activeSession = sessionManager.sessions.find(
     (session) => session.id === sessionManager.activeSessionId,
@@ -188,6 +195,19 @@ export default function App() {
             selectedPathType={diffManager.selectedPathType}
             onSelectPath={handleSelectPath}
             onLoadSessions={sessionManager.loadSessions}
+            historyManager={historyManager}
+            fsckReport={fsckReport}
+            gcReport={gcReport}
+            onRunFsck={async (repair) => {
+              if (!activeSession) return;
+              const report = await apiRunFsck(activeSession.id, repair);
+              setFsckReport(report);
+            }}
+            onRunGc={async (dryRun) => {
+              if (!activeSession) return;
+              const report = await apiRunGarbageCollection(activeSession.id, dryRun);
+              setGcReport(report);
+            }}
           />
         }
         inspector={
@@ -204,7 +224,6 @@ export default function App() {
                 : null
             }
             diffText={diffManager.diffText}
-            historyManager={historyManager}
             onLoadSessions={sessionManager.loadSessions}
           />
         }

@@ -1,6 +1,5 @@
-import { Button, Dropdown, Flex, Select, Space } from "antd";
+import { Button, Flex, Popconfirm, Select, Space, Tooltip } from "antd";
 import {
-  IconDotsVertical,
   IconFolderPlus,
   IconPlayerPause,
   IconPlayerPlay,
@@ -25,7 +24,6 @@ interface ProjectToolbarProps {
 
 /**
  * Thanh công cụ project bằng AntD.
- * Dùng control chuẩn thay vì custom UI cũ.
  */
 export function ProjectToolbar({
   sessions,
@@ -48,27 +46,8 @@ export function ProjectToolbar({
   const isWatching =
     activeSession?.watchStatus === "watching" || activeSession?.watchStatus === "refreshing";
 
-  const menuItems = activeSession
-    ? [
-        {
-          key: isWatching ? "pause" : "resume",
-          label: isWatching ? "Tạm dừng theo dõi" : "Tiếp tục theo dõi",
-          icon: isWatching ? <IconPlayerPause size={14} /> : <IconPlayerPlay size={14} />,
-          onClick: isWatching ? onPause : onResume,
-        },
-        { type: "divider" as const },
-        {
-          key: "remove",
-          label: "Xóa project",
-          icon: <IconTrash size={14} />,
-          danger: true,
-          onClick: onRemove,
-        },
-      ]
-    : [];
-
   return (
-    <Flex gap="small" align="center" wrap="wrap">
+    <Flex gap="middle" align="center" wrap="wrap" style={{ overflow: 'visible' }}>
       <Select
         placeholder="Chọn project"
         options={projectOptions}
@@ -76,20 +55,83 @@ export function ProjectToolbar({
         onChange={(value) => onSessionChange(value ?? null)}
         showSearch
         optionFilterProp="label"
+        style={{ minWidth: 180 }}
       />
 
-      <Space.Compact>
-        <Button icon={<IconFolderPlus size={16} />} onClick={onAddProject}>
-          Thêm
-        </Button>
-        <Button icon={<IconSettings size={16} />} onClick={onSettings} />
-        <Button icon={<IconRefresh size={16} />} onClick={onRefresh} loading={loading} disabled={!activeSession} />
-        {activeSession ? (
-          <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-            <Button icon={<IconDotsVertical size={16} />} />
-          </Dropdown>
-        ) : null}
-      </Space.Compact>
+      <Flex gap="small" align="center" style={{ overflow: 'visible' }}>
+        <Tooltip title="Thêm project mới">
+          <Button 
+            type="primary" 
+            icon={<IconFolderPlus size={16} />} 
+            onClick={onAddProject}
+            className="hover-lift"
+          >
+            Thêm
+          </Button>
+        </Tooltip>
+        
+        <Tooltip title="Cấu hình hệ thống">
+          <Button 
+            icon={<IconSettings size={16} />} 
+            onClick={onSettings}
+            className="hover-lift"
+          />
+        </Tooltip>
+
+        <Tooltip title="Làm mới trạng thái">
+          <Button 
+            icon={<IconRefresh size={16} />} 
+            onClick={onRefresh} 
+            loading={loading} 
+            disabled={!activeSession}
+            style={{ color: activeSession ? 'var(--color-info)' : undefined }}
+            className="hover-lift"
+          />
+        </Tooltip>
+
+        {activeSession && (
+          <>
+            <Popconfirm
+              title={isWatching ? "Dừng theo dõi?" : "Tiếp tục theo dõi?"}
+              description={isWatching ? "Hệ thống sẽ không tự động nhận diện thay đổi file nữa." : "Hệ thống sẽ bắt đầu theo dõi thay đổi file realtime."}
+              onConfirm={isWatching ? onPause : onResume}
+              okText="Đồng ý"
+              cancelText="Hủy"
+              placement="bottomRight"
+            >
+              <Button
+                icon={isWatching ? <IconPlayerPause size={16} /> : <IconPlayerPlay size={16} />}
+                style={{ 
+                  color: isWatching ? 'var(--color-warning)' : 'var(--color-success)',
+                  borderColor: isWatching ? 'var(--color-warning)' : 'var(--color-success)'
+                }}
+                className="hover-lift"
+              >
+                {isWatching ? "Dừng" : "Chạy"}
+              </Button>
+            </Popconfirm>
+
+            <Popconfirm
+              title="Xóa project khỏi danh sách?"
+              description="Hành động này chỉ xóa khỏi UI, không xóa dữ liệu .ai-track của bạn."
+              onConfirm={onRemove}
+              okText="Xóa"
+              cancelText="Hủy"
+              okButtonProps={{ danger: true }}
+              placement="bottomRight"
+            >
+              <Button
+                danger
+                type="dashed"
+                icon={<IconTrash size={16} />}
+                className="hover-lift"
+              >
+                Xóa
+              </Button>
+            </Popconfirm>
+          </>
+        )}
+      </Flex>
     </Flex>
   );
 }

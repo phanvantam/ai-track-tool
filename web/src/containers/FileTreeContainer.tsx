@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { notifications } from "../lib/notify";
-import {
+import { 
+  type FsckReport,
+  type GarbageCollectionReport,
   resetSnapshot as apiResetSnapshot,
   rollback as apiRollback,
   type SessionState,
 } from "../api";
 import { FileTree } from "../components/FileTree";
+import type { useHistoryManager } from "../hooks";
 
 interface FileTreeContainerProps {
   session: SessionState | null;
@@ -13,6 +16,11 @@ interface FileTreeContainerProps {
   selectedPathType: "file" | "folder" | null;
   onSelectPath: (path: string, type: "file" | "folder") => void;
   onLoadSessions: () => Promise<void>;
+  historyManager: ReturnType<typeof useHistoryManager>;
+  fsckReport: FsckReport | null;
+  gcReport: GarbageCollectionReport | null;
+  onRunFsck: (repair: boolean) => Promise<void>;
+  onRunGc: (dryRun: boolean) => Promise<void>;
 }
 
 /**
@@ -25,6 +33,11 @@ export function FileTreeContainer({
   selectedPathType,
   onSelectPath,
   onLoadSessions,
+  historyManager,
+  fsckReport,
+  gcReport,
+  onRunFsck,
+  onRunGc,
 }: FileTreeContainerProps) {
   const [loading, setLoading] = useState(false);
   const [rollbackAllProgress, setRollbackAllProgress] = useState(0);
@@ -138,13 +151,18 @@ export function FileTreeContainer({
       changes={session.changes}
       selectedPath={selectedPath}
       selectedPathType={selectedPathType}
-      selectedFolderChangeCount={selectedFolderChanges.length}
+      selectedFolderChangeCount={0}
       onSelect={onSelectPath}
       onResetSnapshot={handleResetSnapshot}
       onRollbackAll={handleRollbackAll}
-      onRollbackFolder={handleRollbackFolder}
+      onRollbackFolder={() => {}}
       loading={loading}
       rollbackAllProgress={rollbackAllProgress}
+      historyManager={historyManager}
+      fsckReport={fsckReport}
+      gcReport={gcReport}
+      onRunFsck={onRunFsck}
+      onRunGc={onRunGc}
     />
   );
 }

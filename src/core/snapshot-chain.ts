@@ -18,11 +18,17 @@ export async function listSnapshotManifests(storagePath: string): Promise<Snapsh
 
   try {
     const entries = await readdir(snapshotsRoot, { withFileTypes: true });
-    const manifests = await Promise.all(
+    const results = await Promise.allSettled(
       entries
         .filter((entry) => entry.isDirectory())
         .map((entry) => readManifest(storagePath, entry.name)),
     );
+
+    // Chỉ giữ lại manifest đọc thành công, skip snapshot hỏng (thiếu manifest.json)
+    const manifests = results
+      .filter((result): result is PromiseFulfilledResult<SnapshotManifest> => result.status === "fulfilled")
+      .map((result) => result.value);
+
     return manifests.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {

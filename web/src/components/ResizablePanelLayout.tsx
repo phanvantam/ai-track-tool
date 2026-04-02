@@ -13,6 +13,7 @@ const TABLET_KEY = "layout.tablet.split";
 /**
  * Layout chính bằng AntD Splitter/Tabs.
  * Desktop ngang, tablet dọc, mobile chuyển tab.
+ * Panel con có border-radius và spacing tinh tế.
  */
 export function ResizablePanelLayout({ fileTree, inspector }: ResizablePanelLayoutProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -50,23 +51,32 @@ export function ResizablePanelLayout({ fileTree, inspector }: ResizablePanelLayo
     }
   }, []);
 
+  // Mobile → Tabs layout
   if (isMobile) {
     return (
-      <div style={{ height: '100%' }}>
+      <div style={{ height: "100%", padding: 4 }}>
         <Tabs
           activeKey={mobileTab}
           onChange={setMobileTab}
-          style={{ height: '100%' }}
+          style={{ height: "100%" }}
           items={[
             {
               key: "files",
               label: "Files",
-              children: <div style={{ height: 'calc(100vh - 112px)' }}>{fileTree}</div>,
+              children: (
+                <div className="panel-section" style={{ height: "calc(100vh - 120px)" }}>
+                  {fileTree}
+                </div>
+              ),
             },
             {
               key: "inspector",
               label: "Inspector",
-              children: <div style={{ height: 'calc(100vh - 112px)' }}>{inspector}</div>,
+              children: (
+                <div className="panel-section" style={{ height: "calc(100vh - 120px)" }}>
+                  {inspector}
+                </div>
+              ),
             },
           ]}
         />
@@ -74,12 +84,13 @@ export function ResizablePanelLayout({ fileTree, inspector }: ResizablePanelLayo
     );
   }
 
+  // Tablet → Vertical splitter
   if (isTablet) {
     return (
-      <div style={{ height: '100%' }}>
+      <div style={{ height: "100%", padding: 4 }}>
         <Splitter
           orientation="vertical"
-          style={{ height: '100%' }}
+          style={{ height: "100%" }}
           onResizeEnd={(sizes) => {
             const next = [sizes[0] ?? 45, sizes[1] ?? 55] as [number, number];
             setTabletSizes(next);
@@ -87,21 +98,22 @@ export function ResizablePanelLayout({ fileTree, inspector }: ResizablePanelLayo
           }}
         >
           <Splitter.Panel min="30%" max="70%" size={`${tabletSizes[0]}%`} defaultSize="45%">
-            <div style={{ height: '100%' }}>{fileTree}</div>
+            <div className="panel-section">{fileTree}</div>
           </Splitter.Panel>
           <Splitter.Panel min="30%" size={`${tabletSizes[1]}%`} defaultSize="55%">
-            <div style={{ height: '100%' }}>{inspector}</div>
+            <div className="panel-section">{inspector}</div>
           </Splitter.Panel>
         </Splitter>
       </div>
     );
   }
 
+  // Desktop → Horizontal splitter
   if (isDesktop || (!isTablet && !isMobile)) {
     return (
-      <div style={{ height: '100%' }}>
+      <div style={{ height: "100%", padding: 4 }}>
         <Splitter
-          style={{ height: '100%' }}
+          style={{ height: "100%" }}
           onResizeEnd={(sizes) => {
             const next = [sizes[0] ?? 25, sizes[1] ?? 75] as [number, number];
             setDesktopSizes(next);
@@ -109,10 +121,10 @@ export function ResizablePanelLayout({ fileTree, inspector }: ResizablePanelLayo
           }}
         >
           <Splitter.Panel min="15%" max="50%" size={`${desktopSizes[0]}%`} defaultSize="25%">
-            <div style={{ height: '100%' }}>{fileTree}</div>
+            <div className="panel-section">{fileTree}</div>
           </Splitter.Panel>
           <Splitter.Panel min="50%" size={`${desktopSizes[1]}%`} defaultSize="75%">
-            <div style={{ height: '100%' }}>{inspector}</div>
+            <div className="panel-section">{inspector}</div>
           </Splitter.Panel>
         </Splitter>
       </div>

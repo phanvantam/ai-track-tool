@@ -33,7 +33,7 @@ export function SnapshotDrawerMetadataTab({
   }, [selectedSnapshot?.snapshotId, selectedSnapshot?.note?.content]);
 
   return (
-    <Flex vertical gap="middle">
+    <Flex vertical gap="middle" style={{ marginTop: 15 }}>
       <Card title="Tags">
         <Flex vertical gap="middle">
           <Flex gap="small" wrap="wrap">

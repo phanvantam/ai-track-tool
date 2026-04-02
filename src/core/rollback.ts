@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir, readFile, rm, stat } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
 import type { MergeStrategy, MetadataCache, SnapshotFileEntry, TrackState } from "../types.js";
@@ -211,6 +211,30 @@ export async function rollbackFileWithStrategy(
     const liveFilePath = resolveTrackedPath(state.targetPath, relativePath);
 
     if (change && change.type === "renamed" && change.oldPath) {
+      // Collapsed directory rename — rename toàn bộ folder
+      if (change.collapsedCount) {
+        const currentDirPath = resolveTrackedPath(state.targetPath, relativePath);
+        const originalDirPath = resolveTrackedPath(state.targetPath, change.oldPath);
+
+        const { result } = await runInTransaction(state.storagePath, `rollback:dir-rename:${relativePath}`, async (transaction) => {
+          await backupFileForTransaction(state.storagePath, transaction, originalDirPath);
+          await backupFileForTransaction(state.storagePath, transaction, currentDirPath);
+          await rename(currentDirPath, originalDirPath);
+          return "moved" as const;
+        });
+
+        await appendReflogEntry(state.storagePath, {
+          action: "rollback",
+          fromSnapshotId: state.activeSnapshotId,
+          toSnapshotId: state.activeSnapshotId,
+          reason: `rollback renamed directory ${relativePath} → ${change.oldPath}`,
+          filesAffected: change.collapsedCount,
+          metadata: { strategy },
+        });
+        return result;
+      }
+
+      // Single file rename — copy + remove
       const currentFilePath = resolveTrackedPath(state.targetPath, relativePath);
       const originalFilePath = resolveTrackedPath(state.targetPath, change.oldPath);
 

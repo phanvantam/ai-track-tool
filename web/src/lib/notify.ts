@@ -1,4 +1,4 @@
-import { notification } from "antd";
+import { message } from "antd";
 
 interface NotifyPayload {
   color?: string;
@@ -6,25 +6,25 @@ interface NotifyPayload {
 }
 
 /**
- * Mapping màu cũ sang API thông báo AntD.
+ * Hiển thị thông báo (toast) ở giữa phía trên màn hình.
  */
 export const notifications = {
-  show({ color, message }: NotifyPayload) {
+  show({ color, message: msg }: NotifyPayload) {
     if (color === "green") {
-      notification.success({ message, placement: "topRight" });
+      void message.success(msg);
       return;
     }
 
     if (color === "red") {
-      notification.error({ message, placement: "topRight" });
+      void message.error(msg);
       return;
     }
 
     if (color === "yellow" || color === "orange") {
-      notification.warning({ message, placement: "topRight" });
+      void message.warning(msg);
       return;
     }
 
-    notification.info({ message, placement: "topRight" });
+    void message.info(msg);
   },
 };

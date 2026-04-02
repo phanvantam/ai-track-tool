@@ -1,50 +1,737 @@
-/* Reset */
+/* ========================================================
+   AI Track — Design System CSS
+   Hệ thống theme variables, glassmorphism, micro-animations.
+   Hỗ trợ 2 mode: dark (mặc định) và light.
+   ======================================================== */
+
+/* --- CSS Custom Properties: Light Theme (Default) --- */
+:root {
+  /* Nền & bề mặt */
+  --bg-primary: #f0f2f5;
+  --bg-secondary: #ffffff;
+  --bg-surface: rgba(255, 255, 255, 0.72);
+  --bg-surface-hover: rgba(255, 255, 255, 0.92);
+  --bg-elevated: #ffffff;
+  --bg-inset: #f5f7fa;
+
+  /* Chữ */
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --text-inverse: #ffffff;
+
+  /* Viền & đường kẻ */
+  --border-primary: rgba(0, 0, 0, 0.08);
+  --border-subtle: rgba(0, 0, 0, 0.04);
+  --border-accent: rgba(59, 130, 246, 0.3);
+
+  /* Accent */
+  --accent-primary: #3b82f6;
+  --accent-primary-hover: #2563eb;
+  --accent-secondary: #06b6d4;
+  --accent-gradient: linear-gradient(135deg, #3b82f6, #06b6d4);
+  --accent-glow: rgba(59, 130, 246, 0.15);
+
+  /* Trạng thái */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Đổ bóng */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.1);
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-blur: 12px;
+
+  /* Bo góc */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Transition */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+
+  /* Diff colors - Light */
+  --diff-added-bg: rgba(16, 185, 129, 0.12);
+  --diff-added-text: #065f46;
+  --diff-removed-bg: rgba(239, 68, 68, 0.1);
+  --diff-removed-text: #991b1b;
+  --diff-meta-bg: rgba(59, 130, 246, 0.08);
+  --diff-meta-text: #6b7280;
+  --diff-header-text: #374151;
+}
+
+/* ========== Reset ========== */
 * {
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Diff styling */
+/* =========================================================
+   Glassmorphism Utilities
+   ========================================================= */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+
+.glass-card {
+  background: var(--bg-surface);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base),
+    border-color var(--transition-base),
+    transform var(--transition-base);
+}
+
+.glass-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-accent);
+}
+
+/* =========================================================
+   Micro-animations
+   ========================================================= */
+
+/* Fade in khi mount */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-base) ease-out both;
+}
+
+/* Slide in từ trái */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideInLeft var(--transition-base) ease-out both;
+}
+
+/* Pulse nhẹ cho active item */
+@keyframes subtlePulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: subtlePulse 2s ease-in-out infinite;
+}
+
+/* Hiệu ứng hover scale nhẹ cho nút bấm, icon */
+.hover-lift {
+  transition: transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.hover-lift:active {
+  transform: translateY(0);
+}
+
+/* Hiệu ứng glow border cho item active */
+.active-glow {
+  border-color: var(--accent-primary) !important;
+  box-shadow: var(--shadow-glow);
+}
+
+/* =========================================================
+   Layout - Overrides cho Ant Design
+   ========================================================= */
+
+/* Header chính */
+.app-header {
+  background: var(--bg-secondary) !important;
+  border-bottom: 1px solid var(--border-primary) !important;
+  padding: 0 20px !important;
+  display: flex;
+  align-items: center;
+  height: 56px !important;
+  line-height: 56px !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Logo / branding text */
+.app-brand {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.3px;
+}
+
+.app-brand-sub {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+/* Content area */
+.main-content {
+  height: calc(100vh - 56px);
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* =========================================================
+   Splitter / Panel overrides
+   ========================================================= */
+
+/* Thanh kéo splitter — tinh tế hơn */
+.ant-splitter-bar {
+  background: var(--border-primary) !important;
+  transition: background var(--transition-fast) !important;
+}
+
+.ant-splitter-bar:hover {
+  background: var(--accent-primary) !important;
+}
+
+/* Panel con trong splitter */
+.panel-section {
+  height: 100%;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
+  overflow: hidden;
+  /* Giữ hidden để Splitter drag hoạt động */
+  margin: 4px;
+  transition: border-color var(--transition-base);
+}
+
+.panel-section:focus-within {
+  border-color: var(--border-accent);
+}
+
+/* =========================================================
+   Card / Tree Overrides (AntD)
+   ========================================================= */
+
+/* Ghi đè AntD card cho dark mode */
+.ant-card {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.ant-card .ant-card-head {
+  background: var(--bg-elevated) !important;
+  border-bottom-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+  min-height: 44px !important;
+  border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
+  overflow: visible !important;
+  /* Fix clipping hover buttons */
+}
+
+.ant-card .ant-card-body {
+  background: var(--bg-secondary) !important;
+}
+
+/* Tree node hover */
+.ant-tree .ant-tree-node-content-wrapper {
+  transition: background var(--transition-fast),
+    color var(--transition-fast) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 2px 8px !important;
+}
+
+.ant-tree .ant-tree-node-content-wrapper:hover {
+  background: var(--bg-surface-hover) !important;
+}
+
+.ant-tree .ant-tree-node-selected .ant-tree-node-content-wrapper,
+.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background: var(--accent-glow) !important;
+  border-left: 2px solid var(--accent-primary);
+}
+
+/* =========================================================
+   Tabs Override (AntD)
+   ========================================================= */
+.ant-tabs .ant-tabs-nav {
+  background: var(--bg-elevated) !important;
+  margin-bottom: 0 !important;
+}
+
+.ant-tabs .ant-tabs-tab {
+  color: var(--text-secondary) !important;
+  transition: color var(--transition-fast) !important;
+}
+
+.ant-tabs .ant-tabs-tab:hover {
+  color: var(--accent-primary) !important;
+}
+
+.ant-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--accent-primary) !important;
+}
+
+.ant-tabs .ant-tabs-ink-bar {
+  background: var(--accent-gradient) !important;
+  height: 2px !important;
+  border-radius: 2px !important;
+}
+
+.ant-tabs .ant-tabs-content-holder {
+  background: var(--bg-secondary) !important;
+  height: 100%;
+}
+
+.ant-tabs .ant-tabs-content,
+.ant-tabs .ant-tabs-tabpane {
+  height: 100%;
+}
+
+/* =========================================================
+   Modal/Drawer Override (AntD)
+   ========================================================= */
+.ant-modal .ant-modal-content {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-primary) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.ant-modal .ant-modal-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border-primary) !important;
+}
+
+.ant-modal .ant-modal-title {
+  color: var(--text-primary) !important;
+}
+
+.ant-modal .ant-modal-close {
+  color: var(--text-secondary) !important;
+}
+
+.ant-drawer .ant-drawer-content {
+  background: var(--bg-elevated) !important;
+}
+
+.ant-drawer .ant-drawer-header {
+  border-bottom: 1px solid var(--border-primary) !important;
+  background: var(--bg-elevated) !important;
+}
+
+/* =========================================================
+   Button Override (AntD)
+   ========================================================= */
+.ant-btn-default {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.ant-btn-default:hover {
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.ant-btn-primary {
+  background: var(--accent-gradient) !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.ant-btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* =========================================================
+   Select Override (AntD)
+   ========================================================= */
+.ant-select .ant-select-selector {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-sm) !important;
+  transition: border-color var(--transition-fast) !important;
+}
+
+.ant-select-focused .ant-select-selector {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px var(--accent-glow) !important;
+}
+
+.ant-select-dropdown {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-primary) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.ant-select-item {
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.ant-select-item-option-active {
+  background: var(--bg-surface-hover) !important;
+}
+
+.ant-select-item-option-selected {
+  background: var(--accent-glow) !important;
+}
+
+/* =========================================================
+   Input Override (AntD)
+   ========================================================= */
+.ant-input {
+  background: var(--bg-inset) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.ant-input:focus,
+.ant-input-focused {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px var(--accent-glow) !important;
+}
+
+/* =========================================================
+   Tag Override (AntD)
+   ========================================================= */
+.ant-tag {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
+}
+
+/* =========================================================
+   Notification / Message Override (AntD)
+   ========================================================= */
+.ant-notification .ant-notification-notice {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-primary) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.ant-message .ant-message-notice-content {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-primary) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+  color: var(--text-primary) !important;
+  padding: 10px 16px !important;
+}
+
+.ant-message-custom-content .anticon {
+  vertical-align: middle !important;
+}
+
+/* =========================================================
+   Typography Override (AntD)
+   ========================================================= */
+.ant-typography {
+  color: var(--text-primary) !important;
+}
+
+.ant-typography.ant-typography-secondary {
+  color: var(--text-secondary) !important;
+}
+
+/* =========================================================
+   Descriptions / Alert / Progress Override (AntD)
+   ========================================================= */
+.ant-descriptions {
+  background: var(--bg-secondary) !important;
+}
+
+.ant-descriptions .ant-descriptions-item-label {
+  background: var(--bg-inset) !important;
+  color: var(--text-secondary) !important;
+}
+
+.ant-descriptions .ant-descriptions-item-content {
+  color: var(--text-primary) !important;
+}
+
+.ant-alert {
+  border-radius: var(--radius-sm) !important;
+}
+
+.ant-progress .ant-progress-inner {
+  background: var(--bg-inset) !important;
+}
+
+/* =========================================================
+   Empty state Override (AntD)
+   ========================================================= */
+.ant-empty-description {
+  color: var(--text-muted) !important;
+}
+
+/* =========================================================
+   List / Dropdown Override (AntD)
+   ========================================================= */
+.ant-list .ant-list-item {
+  border-bottom-color: var(--border-subtle) !important;
+  transition: background var(--transition-fast) !important;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.ant-list .ant-list-item:hover {
+  background: var(--bg-surface-hover) !important;
+}
+
+.ant-dropdown .ant-dropdown-menu {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-primary) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.ant-dropdown .ant-dropdown-menu-item {
+  color: var(--text-primary) !important;
+}
+
+.ant-dropdown .ant-dropdown-menu-item:hover {
+  background: var(--bg-surface-hover) !important;
+}
+
+/* =========================================================
+   Tooltip Override (AntD)
+   ========================================================= */
+.ant-tooltip .ant-tooltip-inner {
+  border-radius: var(--radius-sm) !important;
+  font-size: 12px !important;
+}
+
+/* =========================================================
+   Scrollbar Custom (WebKit)
+   ========================================================= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* =========================================================
+   Diff styling (tối ưu cho cả Dark & Light)
+   ========================================================= */
 .diff-container {
-  font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
-  line-height: 1.5;
-  background: #f8f8f8;
+  line-height: 1.65;
+  background: var(--bg-inset);
   padding: 12px;
   overflow: auto;
   height: 100%;
+  border-radius: 0;
+  /* Bo góc bằng 0 cho vùng diff */
 }
 
 .diff-line {
   margin: 0;
-  padding: 2px 8px;
+  padding: 1px 12px;
   white-space: pre;
   display: block;
+  border-left: 3px solid transparent;
+  transition: background var(--transition-fast);
+}
+
+.diff-line:hover {
+  background: var(--bg-surface-hover);
 }
 
 .diff-added {
-  background-color: #d4edda;
+  background-color: var(--diff-added-bg);
+  color: var(--diff-added-text);
+  border-left-color: var(--color-success);
 }
 
 .diff-removed {
-  background-color: #f8d7da;
+  background-color: var(--diff-removed-bg);
+  color: var(--diff-removed-text);
+  border-left-color: var(--color-danger);
 }
 
 .diff-meta {
-  color: #6c757d;
-  background-color: #e9ecef;
+  color: var(--diff-meta-text);
+  background-color: var(--diff-meta-bg);
+  font-style: italic;
 }
 
 .diff-header {
-  color: #495057;
+  color: var(--diff-header-text);
   font-weight: 600;
 }
 
+/* =========================================================
+   Session / Footer bar (dùng trong FileTree)
+   ========================================================= */
+.filetree-footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-primary);
+  background: var(--bg-elevated);
+}
+
+/* =========================================================
+   Flat Change List
+   ========================================================= */
+.flat-change-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.change-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all var(--transition-fast);
+  background: var(--bg-secondary);
+}
+
+.change-item:hover {
+  background: var(--bg-surface-hover);
+  padding-left: 20px;
+  /* Nhích nhẹ sang phải khi hover */
+}
+
+.change-item.selected {
+  background: var(--accent-glow);
+  border-left: 4px solid var(--accent-primary);
+  padding-left: 12px;
+}
+
+.change-path {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-primary);
+  flex: 1;
+  margin-right: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.change-item.selected .change-path {
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.change-meta {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.change-type-badge {
+  min-width: 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: bold;
+  border-radius: 4px !important;
+  margin: 0 !important;
+}
+
+/* Hiệu ứng trượt nhẹ */
+.change-item {
+  animation: slideIn var(--transition-base);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

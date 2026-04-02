@@ -20,16 +20,27 @@ export function SnapshotDrawerOverviewTab({
   onClose,
 }: SnapshotDrawerOverviewTabProps) {
   return (
-    <Card>
+    <Card style={{ marginTop: 15 }}>
       <Flex vertical gap="middle">
         <Flex justify="space-between" align="start">
           <Flex vertical gap={4}>
             <Typography.Text type="secondary">Mốc đã chọn</Typography.Text>
             <Typography.Text strong>{selectedSnapshot.snapshotId}</Typography.Text>
           </Flex>
-          <Flex gap="small" wrap="wrap">
-            {selectedSnapshot.isActive ? <Tag color="purple">hiện tại</Tag> : null}
-            <Tag>{selectedSnapshot.fileCount} file</Tag>
+          <Flex gap="small" wrap="wrap" align="start">
+            {selectedSnapshot.isActive ? (
+               <Tag color="success" bordered={false} style={{ fontSize: 9, lineHeight: '16px', padding: '0 4px', margin: 0 }}>ACTIVE</Tag>
+            ) : null}
+            <Flex vertical align="end">
+              <Tag style={{ margin: 0 }}>{selectedSnapshot.fileCount} file</Tag>
+              {selectedSnapshot.diffStats && (
+                <Flex gap={4} style={{ fontSize: 10, marginTop: 4 }}>
+                  <span style={{ color: 'var(--color-success, #52c41a)' }}>+{selectedSnapshot.diffStats.added}</span>
+                  <span style={{ color: 'var(--color-warning, #faad14)' }}>~{selectedSnapshot.diffStats.modified}</span>
+                  <span style={{ color: 'var(--color-error, #ff4d4f)' }}>-{selectedSnapshot.diffStats.deleted}</span>
+                </Flex>
+              )}
+            </Flex>
           </Flex>
         </Flex>
 

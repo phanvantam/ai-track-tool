@@ -13,7 +13,9 @@
     "build": "tsc -p tsconfig.json",
     "build:web": "npm run build --workspace web",
     "build:all": "npm run build && npm run build:web",
+    "watch:web": "npm run build --workspace web -- --watch",
     "dev": "tsx src/cli.ts",
+    "dev:web": "tsx --watch src/cli.ts web",
     "test": "vitest run"
   },
   "dependencies": {

@@ -1,11 +1,24 @@
 export type ChangeType = "added" | "modified" | "deleted" | "renamed";
 export type WatchStatus = "idle" | "watching" | "refreshing" | "error";
 
+export interface DirectoryRename {
+  oldPath: string;
+  newPath: string;
+  filesAffected: number;
+  confidence: number;
+  detection: string;
+}
+
 export interface ChangeEntry {
   path: string;
   type: ChangeType;
   isBinary: boolean;
   oldPath?: string;
+  insertions?: number;
+  deletions?: number;
+  directoryRename?: DirectoryRename;
+  /** Khi có giá trị, entry này đại diện cho N files cùng folder đã gom nhóm */
+  collapsedCount?: number;
 }
 
 export interface SessionState {
@@ -78,6 +91,8 @@ export interface SessionHistoryEntry {
   isActive: boolean;
   tags: string[];
   note: SnapshotAnnotation | null;
+  /** Thống kê file thay đổi so với parent snapshot */
+  diffStats?: { added: number; modified: number; deleted: number };
 }
 
 export interface SessionHistoryView {

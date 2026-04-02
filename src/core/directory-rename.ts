@@ -1,93 +1,95 @@
-import path from "node:path";
+import type { ChangeEntry, ChangeType } from "../types.js";
 
-import type { ChangeEntry, DirectoryRename } from "../types.js";
+/** Ngưỡng tối thiểu để gom nhóm files cùng folder */
+const BULK_COLLAPSE_THRESHOLD = 10;
 
-function deriveDirectoryRename(oldPath: string, newPath: string): { oldPath: string; newPath: string } | null {
-  const oldDirs = path.posix.dirname(oldPath).split("/").filter(Boolean);
-  const newDirs = path.posix.dirname(newPath).split("/").filter(Boolean);
 
-  if (oldDirs.length === 0 || newDirs.length === 0) {
-    return null;
-  }
-
-  let suffixLength = 0;
-  while (
-    suffixLength < oldDirs.length &&
-    suffixLength < newDirs.length &&
-    oldDirs[oldDirs.length - 1 - suffixLength] === newDirs[newDirs.length - 1 - suffixLength]
-  ) {
-    suffixLength += 1;
-  }
-
-  const oldRoot = oldDirs.slice(0, Math.max(1, oldDirs.length - suffixLength)).join("/");
-  const newRoot = newDirs.slice(0, Math.max(1, newDirs.length - suffixLength)).join("/");
-
-  if (!oldRoot || !newRoot || oldRoot === newRoot) {
-    return null;
-  }
-
-  return { oldPath: oldRoot, newPath: newRoot };
+/**
+ * Lấy top-level directory segment từ path.
+ * Ví dụ: "node_modules2/@jridgewell/foo.js" → "node_modules2"
+ * File ở root (không có '/') → null (không gom).
+ */
+function getTopLevelDir(filePath: string): string | null {
+  const firstSlash = filePath.indexOf("/");
+  return firstSlash === -1 ? null : filePath.substring(0, firstSlash);
 }
 
-export function detectDirectoryRenames(changes: ChangeEntry[]): DirectoryRename[] {
-  const groups = new Map<string, DirectoryRename>();
+/**
+ * Detect các top-level directory có quá nhiều file changes.
+ * Trả về Set chứa tên directory cần collapse.
+ */
+export function detectBulkDirectories(changes: ChangeEntry[], threshold = BULK_COLLAPSE_THRESHOLD): Set<string> {
+  const counts = new Map<string, number>();
 
   for (const change of changes) {
-    if (change.type !== "renamed" || !change.oldPath) {
-      continue;
-    }
+    const dir = getTopLevelDir(change.path);
+    if (!dir) continue;
 
-    const candidate = deriveDirectoryRename(change.oldPath, change.path);
-
-    if (!candidate) {
-      continue;
-    }
-
-    const key = `${candidate.oldPath}->${candidate.newPath}`;
-    const existing = groups.get(key);
-
-    if (existing) {
-      existing.filesAffected += 1;
-      existing.confidence = Math.min(1, 0.6 + existing.filesAffected * 0.2);
-      continue;
-    }
-
-    groups.set(key, {
-      ...candidate,
-      filesAffected: 1,
-      confidence: 0.6,
-      detection: "path_pattern",
-    });
+    counts.set(dir, (counts.get(dir) ?? 0) + 1);
   }
 
-  return [...groups.values()]
-    .filter((group) => group.filesAffected >= 2)
-    .sort((left, right) => left.oldPath.localeCompare(right.oldPath));
+  const bulkDirs = new Set<string>();
+  for (const [dir, count] of counts) {
+    if (count >= threshold) {
+      bulkDirs.add(dir);
+    }
+  }
+
+  return bulkDirs;
 }
 
-export function attachDirectoryRenames(changes: ChangeEntry[]): ChangeEntry[] {
-  const directoryRenames = detectDirectoryRenames(changes);
+/**
+ * Gom file cùng top-level directory thành 1 entry đại diện.
+ * Chỉ gom khi folder có >= threshold files.
+ * Mục đích: tránh sidebar hiển thị hàng nghìn file khi thêm/xóa/sửa folder lớn.
+ */
+export function collapseBulkDirectoryChanges(changes: ChangeEntry[], threshold = BULK_COLLAPSE_THRESHOLD): ChangeEntry[] {
+  const bulkDirs = detectBulkDirectories(changes, threshold);
 
-  if (directoryRenames.length === 0) {
+  if (bulkDirs.size === 0) {
     return changes;
   }
 
-  return changes.map((change) => {
-    if (change.type !== "renamed" || !change.oldPath) {
-      return change;
+  // Group file theo (dir, type)
+  const groups = new Map<string, ChangeEntry[]>();
+  const kept: ChangeEntry[] = [];
+
+  for (const change of changes) {
+    const dir = getTopLevelDir(change.path);
+    if (!dir || !bulkDirs.has(dir)) {
+      kept.push(change);
+      continue;
     }
 
-    const directoryRename = directoryRenames.find(
-      (group) => change.oldPath!.startsWith(`${group.oldPath}/`) && change.path.startsWith(`${group.newPath}/`),
-    );
+    // Group theo "dir:type" — mỗi type tạo 1 entry riêng
+    const groupKey = `${dir}:${change.type}`;
+    const group = groups.get(groupKey) ?? [];
+    group.push(change);
+    groups.set(groupKey, group);
+  }
 
-    if (!directoryRename) {
-      return change;
-    }
+  // Tạo entry đại diện cho mỗi group
+  for (const [groupKey, groupChanges] of groups) {
+    const separatorIdx = groupKey.lastIndexOf(":");
+    const dirPath = groupKey.substring(0, separatorIdx);
+    const changeType = groupKey.substring(separatorIdx + 1) as ChangeType;
 
-    return {
-      ...change,
-      directoryRename,
-    };
-  });
+    const totalInsertions = groupChanges.reduce((sum, c) => sum + (c.insertions ?? 0), 0);
+    const totalDeletions = groupChanges.reduce((sum, c) => sum + (c.deletions ?? 0), 0);
+
+    kept.push({
+      path: dirPath,
+      type: changeType,
+      isBinary: false,
+      beforeAbsolutePath: null,
+      afterAbsolutePath: null,
+      insertions: totalInsertions,
+      deletions: totalDeletions,
+      collapsedCount: groupChanges.length,
+    });
+  }
+
+  return kept.sort((a, b) => a.path.localeCompare(b.path));
 }
+
+

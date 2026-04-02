@@ -305,6 +305,10 @@ export interface ChangeEntry {
   afterAbsolutePath: string | null;
   oldPath?: string; // For renamed files
   directoryRename?: DirectoryRename;
+  insertions?: number;
+  deletions?: number;
+  /** Khi có giá trị, entry này đại diện cho N files cùng folder đã gom nhóm */
+  collapsedCount?: number;
 }
 
 export type WatchStatus = "idle" | "watching" | "refreshing" | "error";
@@ -336,6 +340,8 @@ export interface SessionHistoryEntry {
   isActive: boolean;
   tags: string[];
   note: SnapshotAnnotation | null;
+  /** Thống kê file thay đổi so với parent snapshot (tính bằng hash comparison) */
+  diffStats?: { added: number; modified: number; deleted: number };
 }
 
 export interface SessionHistoryView {

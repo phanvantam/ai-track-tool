@@ -59,16 +59,16 @@ export function labelForDiffType(type: SnapshotDiffEntry["type"]): string {
  * - header lines → is-header
  */
 export function getDiffLineClass(line: string): string {
-  if (line.startsWith("@@")) return "is-meta";
-  if (line.startsWith("+") && !line.startsWith("+++")) return "is-added";
-  if (line.startsWith("-") && !line.startsWith("---")) return "is-removed";
+  if (line.startsWith("@@")) return "diff-meta";
+  if (line.startsWith("+") && !line.startsWith("+++")) return "diff-added";
+  if (line.startsWith("-") && !line.startsWith("---")) return "diff-removed";
   if (
     line.startsWith("Index:") ||
     line.startsWith("===") ||
     line.startsWith("+++") ||
     line.startsWith("---")
   ) {
-    return "is-header";
+    return "diff-header";
   }
   return "";
 }
