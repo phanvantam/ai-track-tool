@@ -22,6 +22,7 @@ import {
 
 import type { SessionHistoryView } from "../../api";
 import type { ConfirmDialogState } from "./types";
+import cardStyles from "../../styles/components/card.module.css";
 
 interface SnapshotDrawerMetadataTabProps {
   selectedSnapshot: SessionHistoryView["snapshots"][0];
@@ -54,7 +55,7 @@ export function SnapshotDrawerMetadataTab({
   return (
     <Stack gap="md">
       {/* Tags Card */}
-      <div className="inspector-card">
+      <div className={cardStyles.inspectorCard}>
         <Stack gap="sm">
           <Text size="xs" fw={700} tt="uppercase" c="dimmed">
             Tags
@@ -106,7 +107,7 @@ export function SnapshotDrawerMetadataTab({
               placeholder="release-v1"
               value={tagInput}
               onChange={(event) => setTagInput(event.currentTarget.value)}
-              className="inspector-grow"
+              className={cardStyles.inspectorGrow}
             />
             <Button
               leftSection={<IconTag size={14} stroke={1.8} />}
@@ -122,7 +123,7 @@ export function SnapshotDrawerMetadataTab({
       </div>
 
       {/* Note Card */}
-      <div className="inspector-card">
+      <div className={cardStyles.inspectorCard}>
         <Stack gap="sm">
           <Text size="xs" fw={700} tt="uppercase" c="dimmed">
             Note

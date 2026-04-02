@@ -9,6 +9,9 @@ import { IconRefresh } from "@tabler/icons-react";
 
 import type { HistoryTabProps } from "./types";
 import { shortId, countChildSnapshots, countBranchNodes } from "./helpers";
+import layoutStyles from "../../styles/layout.module.css";
+import cardStyles from "../../styles/components/card.module.css";
+import historyStyles from "../../styles/components/history.module.css";
 
 export function HistoryTab({
   history,
@@ -23,8 +26,8 @@ export function HistoryTab({
   ) ?? history?.snapshots.find((snapshot) => snapshot.isActive) ?? null;
 
   return (
-    <div className="inspector-panel-fill">
-      <ScrollArea className="inspector-scroll" type="never">
+    <div className={layoutStyles.inspectorPanelFill}>
+      <ScrollArea className={layoutStyles.inspectorScroll} type="never">
         <Stack gap="md" p="md">
           {/* Header */}
           <Group justify="space-between">
@@ -48,7 +51,7 @@ export function HistoryTab({
           </Group>
 
           {/* History Graph Card */}
-          <div className="inspector-card inspector-graph-card">
+          <div className={`${cardStyles.inspectorCard} ${cardStyles.inspectorGraphCard}`}>
             <Group justify="space-between" align="flex-start" mb={10}>
               <Stack gap={2}>
                 <Text size="xs" fw={700} tt="uppercase" c="dimmed">
@@ -72,7 +75,7 @@ export function HistoryTab({
             </Group>
 
             {history && history.snapshots.length > 0 ? (
-              <div className="history-graph-list">
+              <div className={historyStyles.historyGraphList}>
                 {history.snapshots.slice(0, 12).map((snapshot, index, snapshots) => {
                   const childCount = countChildSnapshots(
                     history.snapshots,
@@ -83,33 +86,29 @@ export function HistoryTab({
                     <button
                       key={snapshot.snapshotId}
                       type="button"
-                      className={`graph-node ${
-                        snapshot.snapshotId === selectedSnapshot?.snapshotId
-                          ? "is-selected"
-                          : ""
-                      } ${snapshot.isActive ? "is-active" : ""}`}
+                      className={`${historyStyles.graphNode} ${snapshot.snapshotId === selectedSnapshot?.snapshotId ? historyStyles.graphNodeSelected : ""} ${snapshot.isActive ? historyStyles.graphNodeActive : ""}`}
                       onClick={() => {
                         onSelectSnapshot(snapshot.snapshotId);
                         onOpenDrawer();
                       }}
                     >
                       <div
-                        className="graph-node-rail"
+                        className={historyStyles.graphNodeRail}
                         aria-hidden="true"
                       >
                         <span
-                          className={`graph-node-line ${
-                            index === 0 ? "is-hidden" : ""
+                          className={`${historyStyles.graphNodeLine} ${
+                            index === 0 ? historyStyles.graphNodeLineHidden : ""
                           }`}
                         />
-                        <span className="graph-node-dot" />
+                        <span className={historyStyles.graphNodeDot} />
                         <span
-                          className={`graph-node-line ${
-                            index === snapshots.length - 1 ? "is-hidden" : ""
+                          className={`${historyStyles.graphNodeLine} ${
+                            index === snapshots.length - 1 ? historyStyles.graphNodeLineHidden : ""
                           }`}
                         />
                       </div>
-                      <div className="graph-node-content">
+                      <div className={historyStyles.graphNodeContent}>
                         <Group
                           justify="space-between"
                           align="flex-start"
@@ -117,7 +116,7 @@ export function HistoryTab({
                         >
                           <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                             <Group gap="xs" wrap="wrap">
-                              <Text fw={700} size="sm" className="history-id">
+                              <Text fw={700} size="sm" className={historyStyles.historyId}>
                                 {shortId(snapshot.snapshotId)}
                               </Text>
                               {snapshot.isActive ? (

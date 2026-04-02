@@ -12,6 +12,8 @@ import {
 } from "@tabler/icons-react";
 
 import type { HealthTabProps } from "./types";
+import layoutStyles from "../../styles/layout.module.css";
+import cardStyles from "../../styles/components/card.module.css";
 
 export function HealthTab({
   lockInfo,
@@ -23,11 +25,11 @@ export function HealthTab({
   onOpenConfirm,
 }: HealthTabProps) {
   return (
-    <div className="inspector-panel-fill">
-      <ScrollArea className="inspector-scroll" type="never">
+    <div className={layoutStyles.inspectorPanelFill}>
+      <ScrollArea className={layoutStyles.inspectorScroll} type="never">
         <Stack gap="md" p="md">
           {/* Lock Info Card */}
-          <div className="inspector-card">
+          <div className={cardStyles.inspectorCard}>
             <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={8}>
               Lock hiện tại
             </Text>
@@ -48,7 +50,7 @@ export function HealthTab({
           </div>
 
           {/* FSCK/GC Tools Card */}
-          <div className="inspector-card">
+          <div className={cardStyles.inspectorCard}>
             <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={8}>
               Công cụ integrity
             </Text>
@@ -117,7 +119,7 @@ export function HealthTab({
           </div>
 
           {/* FSCK Report Card */}
-          <div className="inspector-card">
+          <div className={cardStyles.inspectorCard}>
             <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={8}>
               Báo cáo FSCK
             </Text>
@@ -143,7 +145,7 @@ export function HealthTab({
                   {fsckReport.errors.slice(0, 8).map((error, index) => (
                     <div
                       key={`${error.type}-${error.path ?? index}`}
-                      className="inspector-list-item"
+                      className={cardStyles.listItem}
                     >
                       <Group justify="space-between" wrap="nowrap">
                         <Text size="sm">{error.path ?? error.type}</Text>
@@ -164,7 +166,7 @@ export function HealthTab({
           </div>
 
           {/* GC Report Card */}
-          <div className="inspector-card">
+          <div className={cardStyles.inspectorCard}>
             <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={8}>
               Báo cáo GC
             </Text>
@@ -184,7 +186,7 @@ export function HealthTab({
                   {gcReport.actions.slice(0, 8).map((action, index) => (
                     <div
                       key={`${action.type}-${action.path ?? index}`}
-                      className="inspector-list-item"
+                      className={cardStyles.listItem}
                     >
                       <Group justify="space-between" wrap="nowrap">
                         <Text size="sm">{action.details}</Text>

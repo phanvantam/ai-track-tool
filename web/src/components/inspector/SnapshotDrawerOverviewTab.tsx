@@ -9,6 +9,8 @@ import { IconRestore } from "@tabler/icons-react";
 import type { SessionHistoryView } from "../../api";
 import { shortId } from "./helpers";
 import type { ConfirmDialogState } from "./types";
+import cardStyles from "../../styles/components/card.module.css";
+import historyStyles from "../../styles/components/history.module.css";
 
 interface SnapshotDrawerOverviewTabProps {
   selectedSnapshot: SessionHistoryView["snapshots"][0];
@@ -25,14 +27,14 @@ export function SnapshotDrawerOverviewTab({
 }: SnapshotDrawerOverviewTabProps) {
   return (
     <Stack gap="md">
-      <div className="inspector-card">
+      <div className={cardStyles.inspectorCard}>
         <Stack gap="sm">
           <Group justify="space-between" align="flex-start">
             <Stack gap={2}>
               <Text size="xs" fw={700} tt="uppercase" c="dimmed">
                 Mốc đã chọn
               </Text>
-              <Text size="sm" fw={600} className="history-id">
+               <Text size="sm" fw={600} className={historyStyles.historyId}>
                 {selectedSnapshot.snapshotId}
               </Text>
             </Stack>
@@ -48,7 +50,7 @@ export function SnapshotDrawerOverviewTab({
             </Group>
           </Group>
 
-          <div className="inspector-list-item">
+          <div className={cardStyles.listItem}>
             <Text size="xs" c="dimmed">
               Thời gian
             </Text>
@@ -57,16 +59,16 @@ export function SnapshotDrawerOverviewTab({
             </Text>
           </div>
 
-          <div className="inspector-list-item">
+          <div className={cardStyles.listItem}>
             <Text size="xs" c="dimmed">
               Mốc cha
             </Text>
-            <Text size="sm" className="history-id">
+            <Text size="sm" className={historyStyles.historyId}>
               {selectedSnapshot.parentSnapshotId ?? "-"}
             </Text>
           </div>
 
-          <div className="inspector-list-item">
+          <div className={cardStyles.listItem}>
             <Text size="xs" c="dimmed">
               Tóm tắt
             </Text>

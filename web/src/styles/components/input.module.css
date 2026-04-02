@@ -1,0 +1,30 @@
+@import "../tokens.css";
+
+.projectSelect {
+  min-width: 260px;
+}
+
+.projectSelectInput {
+  background-color: #171925;
+  border-color: #2a2d3e;
+  color: #f4f4f5;
+}
+
+.projectSelectPlaceholder {
+  color: var(--color-text-tertiary);
+}
+
+.projectSwitcher {
+  min-width: 320px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .projectSwitcher {
+    min-width: 0;
+  }
+
+  .projectSelect {
+    min-width: 160px;
+  }
+}

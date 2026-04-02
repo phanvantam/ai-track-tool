@@ -8,6 +8,9 @@ import { useState } from "react";
 
 import type { SnapshotDiffEntry, SessionHistoryView } from "../../api";
 import { labelForDiffType, getDiffLineClass, shortId } from "./helpers";
+import cardStyles from "../../styles/components/card.module.css";
+import historyStyles from "../../styles/components/history.module.css";
+import diffStyles from "../../styles/components/diff.module.css";
 
 interface SnapshotDrawerCompareTabProps {
   selectedSnapshot: SessionHistoryView["snapshots"][0];
@@ -28,7 +31,7 @@ export function SnapshotDrawerCompareTab({
 
   return (
     <>
-      <div className="inspector-card">
+      <div className={cardStyles.inspectorCard}>
         <Text
           size="xs"
           fw={700}
@@ -68,9 +71,9 @@ export function SnapshotDrawerCompareTab({
                 <button
                   key={`${entry.type}-${entry.path}`}
                   type="button"
-                  className={`history-item ${
+                  className={`${historyStyles.historyItem} ${
                     selectedSnapshotDiffPath === entry.path
-                      ? "is-selected"
+                      ? historyStyles.historyItemSelected
                       : ""
                   }`}
                   title={entry.path}
@@ -83,11 +86,11 @@ export function SnapshotDrawerCompareTab({
                     justify="space-between"
                     align="center"
                     wrap="nowrap"
-                    className="inspector-list-item compare-list-item"
+                    className={`${cardStyles.listItem} ${historyStyles.compareListItem}`}
                   >
                     <Text
                       size="sm"
-                      className="compare-path-text"
+                      className={historyStyles.comparePathText}
                       title={entry.path}
                     >
                       {entry.path}
@@ -95,7 +98,7 @@ export function SnapshotDrawerCompareTab({
                     <Group
                       gap={6}
                       wrap="nowrap"
-                      className="compare-list-meta"
+                      className={historyStyles.compareListMeta}
                     >
                       <Badge
                         size="xs"
@@ -184,15 +187,15 @@ export function SnapshotDrawerCompareTab({
                     </Group>
                   ))}
               </Group>
-              <div className="inspector-card inspector-graph-card">
-                <div className="diff-block">
+              <div className={`${cardStyles.inspectorCard} ${cardStyles.inspectorGraphCard}`}>
+                <div className={diffStyles.diffBlock}>
                   {snapshotDiffText.split("\n").map((line, index) => (
                     <Text
                       key={`${index}-${line}`}
                       component="pre"
                       ff="monospace"
                       size="xs"
-                      className={`diff-line ${getDiffLineClass(line)}`}
+                      className={`${diffStyles.diffLine} ${getDiffLineClass(line)}`}
                     >
                       {line || " "}
                     </Text>

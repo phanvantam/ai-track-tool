@@ -33,6 +33,7 @@ import {
   SnapshotDrawer,
   type ConfirmDialogState,
 } from "./inspector";
+import layoutStyles from "../styles/layout.module.css";
 
 interface InspectorPanelProps {
   session: SessionState;
@@ -113,9 +114,9 @@ export function InspectorPanel({
   }
 
   return (
-    <div className="inspector-container">
-      <Tabs defaultValue="diff" className="inspector-tabs">
-        <Tabs.List className="inspector-tabs-list">
+    <div className={layoutStyles.inspectorContainer}>
+      <Tabs defaultValue="diff" className={layoutStyles.inspectorTabs}>
+        <Tabs.List className={layoutStyles.inspectorTabsList}>
           <Tabs.Tab value="diff" leftSection={<IconWand size={14} stroke={1.8} />}>
             Diff
           </Tabs.Tab>
@@ -139,8 +140,8 @@ export function InspectorPanel({
           </Tabs.Tab>
         </Tabs.List>
 
-        {/* Diff Tab */}
-        <Tabs.Panel value="diff" className="inspector-panel-fill">
+         {/* Diff Tab */}
+        <Tabs.Panel value="diff" className={layoutStyles.inspectorPanelFill}>
           <DiffTab
             selectedChange={selectedChange}
             diff={diff}
@@ -151,7 +152,7 @@ export function InspectorPanel({
         </Tabs.Panel>
 
         {/* History Tab */}
-        <Tabs.Panel value="history" className="inspector-panel-fill">
+        <Tabs.Panel value="history" className={layoutStyles.inspectorPanelFill}>
           <HistoryTab
             history={history}
             historyLoading={historyLoading}
@@ -163,7 +164,7 @@ export function InspectorPanel({
         </Tabs.Panel>
 
         {/* Health Tab */}
-        <Tabs.Panel value="health" className="inspector-panel-fill">
+        <Tabs.Panel value="health" className={layoutStyles.inspectorPanelFill}>
           <HealthTab
             lockInfo={lockInfo}
             fsckReport={fsckReport}
@@ -176,7 +177,7 @@ export function InspectorPanel({
         </Tabs.Panel>
 
         {/* Reflog Tab */}
-        <Tabs.Panel value="reflog" className="inspector-panel-fill">
+        <Tabs.Panel value="reflog" className={layoutStyles.inspectorPanelFill}>
           <ReflogTab history={history} />
         </Tabs.Panel>
       </Tabs>

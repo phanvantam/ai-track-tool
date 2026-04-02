@@ -1,5 +1,6 @@
 import { AppShell, Group, Text, Title } from "@mantine/core";
 import type { ReactNode } from "react";
+import layoutStyles from "../styles/layout.module.css";
 
 interface LayoutProps {
   sidebar?: ReactNode;
@@ -14,13 +15,13 @@ export function Layout({ sidebar, headerActions, children }: LayoutProps) {
       header={{ height: 56 }}
       navbar={sidebar ? { width: 300, breakpoint: "sm", collapsed: { desktop: false, mobile: true } } : undefined}
     >
-      <AppShell.Header className="app-header">
+      <AppShell.Header className={layoutStyles.appHeader}>
         <Group h="100%" px="lg" justify="space-between">
           <Group gap="sm">
-            <Text size="sm" fw={700} tt="uppercase" c="violet.4" className="logo-text">
+            <Text size="sm" fw={700} tt="uppercase" c="violet.4" className={layoutStyles.logoText}>
               AI Track
             </Text>
-            <Title order={4} fw={600} className="app-title">
+            <Title order={4} fw={600} className={layoutStyles.appTitle}>
               Change Viewer
             </Title>
           </Group>
@@ -33,9 +34,9 @@ export function Layout({ sidebar, headerActions, children }: LayoutProps) {
         </Group>
       </AppShell.Header>
 
-      {sidebar ? <AppShell.Navbar className="app-sidebar">{sidebar}</AppShell.Navbar> : null}
+      {sidebar ? <AppShell.Navbar className={layoutStyles.appSidebar}>{sidebar}</AppShell.Navbar> : null}
 
-      <AppShell.Main className="app-main">
+      <AppShell.Main className={layoutStyles.appMain}>
         {children}
       </AppShell.Main>
     </AppShell>

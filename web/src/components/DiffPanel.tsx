@@ -3,6 +3,8 @@ import { IconArrowsMaximize, IconCheck, IconCopy, IconRestore } from "@tabler/ic
 import { useState } from "react";
 
 import type { ChangeEntry } from "../api";
+import layoutStyles from "../styles/layout.module.css";
+import diffStyles from "../styles/components/diff.module.css";
 
 interface DiffPanelProps {
   selectedChange: ChangeEntry | null;
@@ -16,8 +18,8 @@ export function DiffPanel({ selectedChange, diff, onRollback, canRollback, loadi
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   return (
-    <div className={`diff-container ${isFullscreen ? "is-fullscreen" : ""}`}>
-      <div className="diff-header">
+    <div className={`${layoutStyles.diffContainer} ${isFullscreen ? layoutStyles.diffContainerFullscreen : ""}`}>
+      <div className={layoutStyles.diffHeader}>
         <Stack gap={4}>
           <Group gap="xs">
             <Text size="xs" fw={700} tt="uppercase" c="dimmed">
@@ -34,7 +36,7 @@ export function DiffPanel({ selectedChange, diff, onRollback, canRollback, loadi
               </Badge>
             )}
           </Group>
-          <Text size="xs" fw={500} className="diff-filename" lineClamp={1}>
+           <Text size="xs" fw={500} className={diffStyles.diffFilename} lineClamp={1}>
             {selectedChange?.path ?? "Chọn một file để xem thay đổi"}
           </Text>
         </Stack>
@@ -63,22 +65,22 @@ export function DiffPanel({ selectedChange, diff, onRollback, canRollback, loadi
         )}
       </div>
 
-      <ScrollArea className="diff-scroll" style={{ flex: 1 }}>
+      <ScrollArea className={layoutStyles.diffScroll} style={{ flex: 1 }}>
         {!selectedChange ? (
-          <div className="diff-empty">
+          <div className={layoutStyles.diffEmpty}>
             <Text size="sm" c="dimmed">
               Chưa có file nào được chọn
             </Text>
           </div>
         ) : (
-          <div className="diff-block">
+          <div className={diffStyles.diffBlock}>
             {diff.split("\n").map((line, index) => (
               <Text
                 key={`${index}-${line}`}
                 component="pre"
                 ff="monospace"
                 size="xs"
-                className={`diff-line ${getDiffLineClass(line)}`}
+                className={`${diffStyles.diffLine} ${getDiffLineClass(line)}`}
               >
                 {line || " "}
               </Text>
@@ -98,11 +100,11 @@ function badgeColor(type: ChangeEntry["type"]): string {
 }
 
 function getDiffLineClass(line: string): string {
-  if (line.startsWith("@@")) return "is-meta";
-  if (line.startsWith("+") && !line.startsWith("+++")) return "is-added";
-  if (line.startsWith("-") && !line.startsWith("---")) return "is-removed";
+  if (line.startsWith("@@")) return diffStyles.diffLineMeta;
+  if (line.startsWith("+") && !line.startsWith("+++")) return diffStyles.diffLineAdded;
+  if (line.startsWith("-") && !line.startsWith("---")) return diffStyles.diffLineRemoved;
   if (line.startsWith("Index:") || line.startsWith("===") || line.startsWith("+++") || line.startsWith("---")) {
-    return "is-header";
+    return diffStyles.diffLineHeader;
   }
   return "";
 }

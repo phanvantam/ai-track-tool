@@ -13,6 +13,7 @@ import type { SnapshotDrawerProps } from "./types";
 import { SnapshotDrawerOverviewTab } from "./SnapshotDrawerOverviewTab";
 import { SnapshotDrawerMetadataTab } from "./SnapshotDrawerMetadataTab";
 import { SnapshotDrawerCompareTab } from "./SnapshotDrawerCompareTab";
+import modalStyles from "../../styles/components/modal.module.css";
 
 export function SnapshotDrawer({
   opened,
@@ -43,13 +44,13 @@ export function SnapshotDrawer({
       }
       position="right"
       size="lg"
-      classNames={{ body: "snapshot-drawer-body" }}
+      classNames={{ body: modalStyles.modalBody }}
     >
       {selectedSnapshot ? (
         <Tabs
           value={drawerTab}
           onChange={setDrawerTab}
-          className="snapshot-drawer-tabs"
+          className={modalStyles.drawerTabs}
         >
           <Tabs.List>
             <Tabs.Tab value="overview">Tổng quan</Tabs.Tab>

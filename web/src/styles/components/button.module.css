@@ -1,0 +1,49 @@
+@import "../tokens.css";
+
+/* Copy Button */
+.copyBtn {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-border);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+  border: none;
+  cursor: pointer;
+}
+
+.copyBtnHover:hover {
+  background-color: #2a2d3e;
+  color: var(--color-text-primary);
+}
+
+.copyBtnCopied {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: var(--color-success);
+}
+
+/* Action Icon Button */
+.actionIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+  border: none;
+  cursor: pointer;
+}
+
+.actionIconHover:hover {
+  background-color: var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+.actionIconActive {
+  background-color: rgba(139, 92, 246, 0.15);
+  color: var(--color-accent);
+}

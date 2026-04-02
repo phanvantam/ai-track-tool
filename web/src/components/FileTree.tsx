@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { ActionIcon, Badge, Button, Group, Modal, Progress, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
-import { IconAlertTriangle, IconCheck, IconChevronRight, IconFolder, IconFolderOpen, IconInfoCircle, IconX } from "@tabler/icons-react";
+import { IconAlertTriangle, IconCheck, IconChevronRight, IconFolder, IconFolderOpen, IconInfoCircle, IconRestore, IconX } from "@tabler/icons-react";
 import { FileIcon as ReactFileIcon, defaultStyles } from "react-file-icon";
 
 import type { ChangeEntry, SessionState } from "../api";
+import layoutStyles from "../styles/layout.module.css";
+import treeStyles from "../styles/components/tree.module.css";
 
 interface FileTreeNode {
   name: string;
@@ -46,6 +48,7 @@ export function FileTree({
   const [infoOpened, setInfoOpened] = useState(false);
   const [resetConfirmOpened, setResetConfirmOpened] = useState(false);
   const [rollbackAllConfirmOpened, setRollbackAllConfirmOpened] = useState(false);
+  const [rollbackFolderConfirmOpened, setRollbackFolderConfirmOpened] = useState(false);
   const tree = useMemo(() => buildTree(changes), [changes]);
   const addedCount = changes.filter((c) => c.type === "added").length;
   const modifiedCount = changes.filter((c) => c.type === "modified").length;
@@ -72,6 +75,10 @@ export function FileTree({
     setRollbackAllConfirmOpened(true);
   }
 
+  function handleRollbackFolderClick() {
+    setRollbackFolderConfirmOpened(true);
+  }
+
   function confirmReset() {
     setResetConfirmOpened(false);
     onResetSnapshot();
@@ -82,9 +89,14 @@ export function FileTree({
     onRollbackAll();
   }
 
+  function confirmRollbackFolder() {
+    setRollbackFolderConfirmOpened(false);
+    onRollbackFolder();
+  }
+
   return (
-    <div className="filetree-container">
-      <div className="filetree-header">
+    <div className={layoutStyles.filetreeContainer}>
+      <div className={layoutStyles.filetreeHeader}>
         <Group gap="xs" wrap="nowrap">
           <Text size="xs" fw={700} tt="uppercase" c="dimmed">
             Thay đổi
@@ -101,7 +113,7 @@ export function FileTree({
         </Group>
       </div>
 
-      <ScrollArea className="filetree-scroll" style={{ flex: 1 }}>
+      <ScrollArea className={layoutStyles.filetreeScroll} style={{ flex: 1 }}>
         <Stack gap={0}>
           {tree.map((node) => (
             <TreeNode
@@ -118,7 +130,7 @@ export function FileTree({
         </Stack>
       </ScrollArea>
 
-      <div className="filetree-actions">
+      <div className={layoutStyles.filetreeActions}>
         <Stack gap="xs">
           {selectedPathType === "folder" && selectedPath ? (
             <Button
@@ -127,9 +139,9 @@ export function FileTree({
               variant="light"
               color="blue"
               loading={loading}
-              onClick={onRollbackFolder}
+              onClick={handleRollbackFolderClick}
               disabled={selectedFolderChangeCount === 0}
-              leftSection={<IconX size={16} stroke={1.8} />}
+              leftSection={<IconRestore size={16} stroke={1.8} />}
             >
               Khôi phục thư mục đã chọn
             </Button>
@@ -187,7 +199,7 @@ export function FileTree({
             <Text size="sm" mt={4}>{session.changeCount}</Text>
           </div>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setInfoOpened(false)}>
+            <Button variant="default" onClick={() => setInfoOpened(false)} leftSection={<IconX size={16} stroke={1.8} />}>
               Đóng
             </Button>
           </Group>
@@ -203,7 +215,7 @@ export function FileTree({
                 Bạn có chắc muốn áp dụng tất cả thay đổi hiện tại?
               </Text>
               <Text size="sm" c="dimmed">
-                {session.changeCount} thay đổi sẽ trở thành baseline mới
+                {session.changeCount} thay đổi sẽ trở thành mốc theo dõi mới
               </Text>
             </Stack>
           </Group>
@@ -222,11 +234,49 @@ export function FileTree({
             </Text>
           </div>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setResetConfirmOpened(false)} disabled={loading}>
+            <Button variant="default" onClick={() => setResetConfirmOpened(false)} disabled={loading} leftSection={<IconX size={16} stroke={1.8} />}>
               Hủy
             </Button>
-            <Button color="green" onClick={confirmReset} loading={loading}>
+            <Button color="green" onClick={confirmReset} loading={loading} leftSection={<IconCheck size={16} stroke={1.8} />}>
               Áp dụng
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal opened={rollbackFolderConfirmOpened} onClose={() => setRollbackFolderConfirmOpened(false)} title="Xác nhận Khôi phục Thư mục" centered radius="md" size="md">
+        <Stack gap="md">
+          <Group gap="sm" align="flex-start">
+            <IconAlertTriangle size={24} stroke={1.8} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 2 }} />
+            <Stack gap="xs" style={{ flex: 1 }}>
+              <Text size="sm" fw={600}>
+                Bạn có chắc muốn khôi phục toàn bộ thư mục đã chọn?
+              </Text>
+              <Text size="sm" c="dimmed">
+                Thư mục: <Text component="span" c="white" fw={500}>{selectedPath}</Text>
+              </Text>
+            </Stack>
+          </Group>
+          <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '12px', borderRadius: '6px', borderLeft: '3px solid #f59e0b' }}>
+            <Group gap={6} mb={6}>
+              <IconAlertTriangle size={16} stroke={1.8} style={{ color: '#fbbf24' }} />
+              <Text size="xs" fw={600} c="yellow.4">
+                CẢNH BÁO
+              </Text>
+            </Group>
+            <Text size="xs" c="dimmed">
+              • Tất cả file trong thư mục sẽ bị khôi phục theo snapshot<br />
+              • File mới thêm trong thư mục có thể bị xóa<br />
+              • Các thay đổi hiện tại trong thư mục sẽ mất<br />
+              • Hãy kiểm tra diff trước khi tiếp tục
+            </Text>
+          </div>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setRollbackFolderConfirmOpened(false)} disabled={loading} leftSection={<IconX size={16} stroke={1.8} />}>
+              Hủy
+            </Button>
+            <Button color="red" onClick={confirmRollbackFolder} loading={loading} leftSection={<IconRestore size={16} stroke={1.8} />}>
+              Khôi phục thư mục
             </Button>
           </Group>
         </Stack>
@@ -275,10 +325,10 @@ export function FileTree({
             </Stack>
           ) : null}
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setRollbackAllConfirmOpened(false)} disabled={loading}>
+            <Button variant="default" onClick={() => setRollbackAllConfirmOpened(false)} disabled={loading} leftSection={<IconX size={16} stroke={1.8} />}>
               Hủy
             </Button>
-            <Button color="red" onClick={confirmRollbackAll} loading={loading}>
+            <Button color="red" onClick={confirmRollbackAll} loading={loading} leftSection={<IconRestore size={16} stroke={1.8} />}>
               Hủy tất cả thay đổi
             </Button>
           </Group>
@@ -303,15 +353,19 @@ function TreeNode({ node, depth, selectedPath, selectedPathType, expandedFolders
     const isExpanded = expandedFolders.has(node.path);
     return (
       <div>
-        <UnstyledButton className={`tree-folder ${isExpanded ? "is-expanded" : ""} ${selectedPath === node.path && selectedPathType === "folder" ? "is-selected" : ""} type-${node.type}`} onClick={() => onSelect(node.path, "folder")} style={{ paddingLeft: depth * 16 + 12 }}>
+        <UnstyledButton 
+          className={`${treeStyles.treeFolder} ${treeStyles.treeFolderHover} ${selectedPath === node.path && selectedPathType === "folder" ? treeStyles.treeFolderSelected : ""} ${node.type === "added" && selectedPath === node.path && selectedPathType === "folder" ? treeStyles.treeFolderAddedSelected : ""} ${node.type === "deleted" && selectedPath === node.path && selectedPathType === "folder" ? treeStyles.treeFolderDeletedSelected : ""} ${node.type === "renamed" && selectedPath === node.path && selectedPathType === "folder" ? treeStyles.treeFolderRenamedSelected : ""}`}
+          onClick={() => onSelect(node.path, "folder")} 
+          style={{ paddingLeft: depth * 16 + 12 }}
+        >
           <Group gap="xs" wrap="nowrap">
             <ActionIcon variant="transparent" size="sm" color="gray" onClick={(event) => {
               event.stopPropagation();
               onToggleFolder(node.path);
             }} aria-label={isExpanded ? "Thu gọn thư mục" : "Mở rộng thư mục"}>
-              <IconChevronRight size={14} stroke={1.8} className={isExpanded ? "folder-arrow is-expanded" : "folder-arrow"} />
+               <IconChevronRight size={14} stroke={1.8} className={`${treeStyles.folderArrow} ${isExpanded ? treeStyles.folderArrowExpanded : ""}`} />
             </ActionIcon>
-            {isExpanded ? <IconFolderOpen size={15} stroke={1.8} className="folder-glyph" /> : <IconFolder size={15} stroke={1.8} className="folder-glyph" />}
+             {isExpanded ? <IconFolderOpen size={15} stroke={1.8} className={treeStyles.folderGlyph} /> : <IconFolder size={15} stroke={1.8} className={treeStyles.folderGlyph} />}
             <Text size="sm" fw={600} lineClamp={1}>
               {node.name}
             </Text>
@@ -335,7 +389,11 @@ function TreeNode({ node, depth, selectedPath, selectedPathType, expandedFolders
   }
 
   return (
-    <UnstyledButton className={`tree-file ${selectedPath === node.path && selectedPathType === "file" ? "is-selected" : ""} type-${node.type}`} onClick={() => onSelect(node.path, "file")} style={{ paddingLeft: depth * 16 + 28 }}>
+    <UnstyledButton 
+      className={`${treeStyles.treeFile} ${treeStyles.treeFileHover} ${selectedPath === node.path && selectedPathType === "file" ? treeStyles.treeFileSelected : ""} ${node.type === "added" && selectedPath === node.path && selectedPathType === "file" ? treeStyles.treeFileAddedSelected : ""} ${node.type === "deleted" && selectedPath === node.path && selectedPathType === "file" ? treeStyles.treeFileDeletedSelected : ""}`}
+      onClick={() => onSelect(node.path, "file")} 
+      style={{ paddingLeft: depth * 16 + 28 }}
+    >
       <Group gap="xs" wrap="nowrap">
         <FileTypeIcon path={node.name} />
         <Text size="sm" lineClamp={1} style={{ flex: 1 }}>
@@ -355,7 +413,7 @@ function FileTypeIcon({ path }: { path: string }) {
   const style = defaultStyles[styleKey];
 
   return (
-    <span className="file-icon">
+    <span className={treeStyles.fileIcon}>
       <ReactFileIcon extension={ext || "txt"} {...style} />
     </span>
   );

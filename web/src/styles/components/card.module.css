@@ -1,0 +1,133 @@
+@import "../tokens.css";
+
+.card {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.cardHover {
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.cardHover:hover {
+  border-color: #3b3f58;
+  background-color: #1b1f2e;
+}
+
+.cardSelected {
+  border-color: rgba(59, 130, 246, 0.55);
+  background-color: rgba(59, 130, 246, 0.12);
+}
+
+.cardActive {
+  border-color: rgba(139, 92, 246, 0.55);
+  background-color: rgba(139, 92, 246, 0.12);
+}
+
+/* Stack - flex column layout */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.stackSmall {
+  gap: var(--spacing-sm);
+}
+
+.stackLarge {
+  gap: var(--spacing-lg);
+}
+
+/* Group - flex row layout */
+.group {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.groupSmall {
+  gap: var(--spacing-sm);
+}
+
+.groupLarge {
+  gap: var(--spacing-lg);
+}
+
+/* Sidebar Card */
+.sidebarCard {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.sidebarCardError {
+  border-color: rgba(239, 68, 68, 0.35);
+  background-color: rgba(127, 29, 29, 0.16);
+}
+
+/* Inspector Card */
+.inspectorCard {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.inspectorGraphCard {
+  overflow: hidden;
+}
+
+/* Config Summary */
+.configSummary {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+}
+
+/* Guide Card */
+.guideCard {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.guideGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+
+.guideCardWide {
+  grid-column: 1 / -1;
+}
+
+/* List Item */
+.listItem {
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+/* Growth Utility */
+.inspectorGrow {
+  flex: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .guideGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .guideCardWide {
+    grid-column: auto;
+  }
+}

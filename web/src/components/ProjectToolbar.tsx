@@ -2,6 +2,7 @@ import { ActionIcon, Group, Menu, Select } from "@mantine/core";
 import { IconDotsVertical, IconFolderPlus, IconPlayerPause, IconPlayerPlay, IconRefresh, IconSettings, IconTrash } from "@tabler/icons-react";
 
 import type { SessionState } from "../api";
+import inputStyles from "../styles/components/input.module.css";
 
 interface ProjectToolbarProps {
   sessions: SessionState[];
@@ -37,13 +38,13 @@ export function ProjectToolbar({
   const isWatching = activeSession?.watchStatus === "watching" || activeSession?.watchStatus === "refreshing";
 
   return (
-    <Group gap="xs" wrap="nowrap" className="project-switcher">
+    <Group gap="xs" wrap="nowrap" className={inputStyles.projectSwitcher}>
       <Select
         placeholder="Chọn project"
         data={projectOptions}
         value={activeSessionId}
         onChange={onSessionChange}
-        className="project-select"
+        className={inputStyles.projectSelect}
         checkIconPosition="right"
         allowDeselect={false}
         searchable

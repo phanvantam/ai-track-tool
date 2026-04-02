@@ -1,0 +1,109 @@
+@import "../tokens.css";
+
+.historyGraphList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.graphNode {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: inherit;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.graphNodeHover:hover {
+  border-color: #3b3f58;
+  background-color: #1b1f2e;
+}
+
+.graphNodeSelected {
+  border-color: rgba(59, 130, 246, 0.55);
+  background-color: rgba(59, 130, 246, 0.12);
+}
+
+.graphNodeActive {
+  border-color: rgba(139, 92, 246, 0.55);
+  background-color: rgba(139, 92, 246, 0.12);
+}
+
+.graphNodeRail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100%;
+}
+
+.graphNodeLine {
+  width: 2px;
+  flex: 1;
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.15), rgba(139, 92, 246, 0.4));
+  border-radius: 999px;
+}
+
+.graphNodeLineHidden {
+  visibility: hidden;
+}
+
+.graphNodeDot {
+  width: 10px;
+  height: 10px;
+  margin: 5px 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #60a5fa, #8b5cf6);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.12);
+}
+
+.graphNodeContent {
+  min-width: 0;
+}
+
+.historyItem {
+  width: 100%;
+  text-align: left;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: inherit;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.historyItemHover:hover {
+  border-color: #3b3f58;
+  background-color: #1b1f2e;
+}
+
+.historyItemSelected {
+  border-color: rgba(139, 92, 246, 0.6);
+  background-color: rgba(139, 92, 246, 0.14);
+}
+
+.historyId {
+  font-family: var(--font-mono);
+}
+
+.comparePathText {
+  flex: 1;
+  text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compareListItem {
+  gap: 10px;
+}
+
+.compareListMeta {
+  flex: 0 0 auto;
+}

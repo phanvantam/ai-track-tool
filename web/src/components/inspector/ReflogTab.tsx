@@ -6,14 +6,16 @@
 import { Badge, Group, ScrollArea, Stack, Text } from "@mantine/core";
 
 import type { ReflogTabProps } from "./types";
+import layoutStyles from "../../styles/layout.module.css";
+import cardStyles from "../../styles/components/card.module.css";
 
 export function ReflogTab({ history }: ReflogTabProps) {
   return (
-    <div className="inspector-panel-fill">
-      <ScrollArea className="inspector-scroll" type="never">
+    <div className={layoutStyles.inspectorPanelFill}>
+      <ScrollArea className={layoutStyles.inspectorScroll} type="never">
         <Stack gap="md" p="md">
           {/* Reflog Stats Card */}
-          <div className="inspector-card">
+          <div className={cardStyles.inspectorCard}>
             <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={8}>
               Thống kê reflog
             </Text>
@@ -32,7 +34,7 @@ export function ReflogTab({ history }: ReflogTabProps) {
           {/* Reflog Entries */}
           <Stack gap="xs">
             {(history?.reflog ?? []).map((entry) => (
-              <div key={entry.id} className="inspector-card">
+              <div key={entry.id} className={cardStyles.inspectorCard}>
                 <Group justify="space-between" align="flex-start" wrap="nowrap">
                   <Stack gap={4} style={{ flex: 1 }}>
                     <Group gap="xs" wrap="wrap">

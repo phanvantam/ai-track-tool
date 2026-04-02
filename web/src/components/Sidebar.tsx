@@ -1,6 +1,9 @@
 import { Button, Group, ScrollArea, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { IconFolderPlus, IconRefresh } from "@tabler/icons-react";
 
 import type { SessionState } from "../api";
+import layoutStyles from "../styles/layout.module.css";
+import badgeStyles from "../styles/components/badge.module.css";
 
 interface SidebarProps {
   sessions: SessionState[];
@@ -29,26 +32,26 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <Stack h="100%" gap={0}>
-      <div className="sidebar-header">
+      <div className={layoutStyles.sidebarHeader}>
         <Text size="xs" fw={700} tt="uppercase" c="dimmed">
           Projects
         </Text>
       </div>
 
-      <ScrollArea className="sidebar-list">
+      <ScrollArea className={layoutStyles.sidebarContent}>
         <Stack gap={2} p="xs">
           {sessions.map((session) => (
             <UnstyledButton
               key={session.id}
               onClick={() => onSessionSelect(session.id)}
-              className={`sidebar-item ${session.id === activeSessionId ? "is-active" : ""}`}
+              className={`${layoutStyles.sidebarItem} ${session.id === activeSessionId ? layoutStyles.sidebarItemActive : ""}`}
             >
               <Stack gap={4}>
                 <Text size="sm" fw={600} lineClamp={1}>
                   {session.targetPath.split("/").at(-1) ?? session.targetPath}
                 </Text>
                 <Group gap="xs">
-                  <span className={`status-dot status-${session.watchStatus}`} />
+                  <span className={`${badgeStyles.statusDot} ${badgeStyles[`status${session.watchStatus.charAt(0).toUpperCase() + session.watchStatus.slice(1)}`] || ""}`} />
                   <Text size="xs" c="dimmed">
                     {session.changeCount} thay đổi
                   </Text>
@@ -59,7 +62,7 @@ export function Sidebar({
         </Stack>
       </ScrollArea>
 
-      <div className="sidebar-footer">
+      <div className={layoutStyles.sidebarFooter}>
         <Stack gap="xs" p="xs">
           <TextInput
             value={newPath}
@@ -74,8 +77,9 @@ export function Sidebar({
               loading={loading}
               onClick={onAddSession}
               fullWidth
+              leftSection={<IconFolderPlus size={14} stroke={1.8} />}
             >
-              + Thêm project
+              Thêm project
             </Button>
             {activeSession && (
               <Button
@@ -83,8 +87,9 @@ export function Sidebar({
                 variant="subtle"
                 loading={loading}
                 onClick={onRefresh}
+                leftSection={<IconRefresh size={14} stroke={1.8} />}
               >
-                ↻
+                Tải lại
               </Button>
             )}
           </Group>

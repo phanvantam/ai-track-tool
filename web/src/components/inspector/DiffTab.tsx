@@ -8,6 +8,7 @@ import { IconRestore } from "@tabler/icons-react";
 
 import { DiffPanel } from "../DiffPanel";
 import type { DiffTabProps } from "./types";
+import layoutStyles from "../../styles/layout.module.css";
 
 export function DiffTab({
   selectedChange,
@@ -17,8 +18,8 @@ export function DiffTab({
   loading,
 }: DiffTabProps) {
   return (
-    <div className="inspector-panel-fill">
-      <ScrollArea className="inspector-scroll" type="never">
+    <div className={layoutStyles.inspectorPanelFill}>
+      <ScrollArea className={layoutStyles.inspectorScroll} type="never">
         <Stack gap="md" p="md">
           <DiffPanel
             selectedChange={selectedChange}
