@@ -1,8 +1,6 @@
-import React from "react";
-import { Modal, TextInput, Group, Text, Stack, Box, Badge } from "@mantine/core";
-import { IconSearch, IconFile, IconFolder, IconBolt } from "@tabler/icons-react";
+import { Flex, Input, List, Modal, Tag, Typography } from "antd";
+import { IconBolt, IconFile, IconFolder, IconSearch } from "@tabler/icons-react";
 import type { CommandSection } from "../hooks/useCommandPalette";
-import styles from "./CommandPalette.module.css";
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -14,8 +12,7 @@ interface CommandPaletteProps {
 }
 
 /**
- * CommandPalette component - Modal search interface cho commands, files, sessions.
- * Mở với Ctrl+K, điều hướng với Arrow keys, chọn với Enter.
+ * Command palette dùng AntD Modal/Input/List.
  */
 export function CommandPalette({
   isOpen,
@@ -25,103 +22,70 @@ export function CommandPalette({
   results,
   selectedIndex,
 }: CommandPaletteProps) {
-  // Flatten all items để track selected index
-  const allItems = results.flatMap((s) => s.items);
+  const allItems = results.flatMap((section) => section.items);
 
-  const getIconForSection = (section: string) => {
-    switch (section) {
-      case "Files":
-        return <IconFile size={16} />;
-      case "Sessions":
-        return <IconFolder size={16} />;
-      case "Actions":
-        return <IconBolt size={16} />;
-      default:
-        return null;
-    }
-  };
+  function getSectionIcon(section: string) {
+    if (section === "Files") return <IconFile size={16} />;
+    if (section === "Sessions") return <IconFolder size={16} />;
+    return <IconBolt size={16} />;
+  }
 
   return (
-    <Modal
-      opened={isOpen}
-      onClose={onClose}
-      title={
-        <Group gap="xs">
-          <IconSearch size={18} />
-          <span>Command Palette</span>
-        </Group>
-      }
-      centered
-      size="lg"
-      classNames={{
-        content: styles.modalContent,
-        header: styles.modalHeader,
-        body: styles.modalBody,
-      }}
-    >
-      <Stack gap="md">
-        <TextInput
-          placeholder="Tìm files, sessions, actions... (Esc để đóng)"
-          leftSection={<IconSearch size={16} />}
+    <Modal open={isOpen} onCancel={onClose} title="Command Palette" footer={null} centered width={760} destroyOnHidden>
+      <Flex vertical gap="middle">
+        <Input
+          placeholder="Tìm files, sessions, actions..."
+          prefix={<IconSearch size={16} />}
           value={searchQuery}
-          onChange={(e) => onSearchChange(e.currentTarget.value)}
+          onChange={(event) => onSearchChange(event.currentTarget.value)}
           autoFocus
-          classNames={{
-            input: styles.searchInput,
-          }}
         />
 
-        <Box className={styles.resultsList}>
+        <div>
           {allItems.length === 0 ? (
-            <Text c="dimmed" ta="center" py="lg">
-              Không tìm thấy kết quả
-            </Text>
+            <Typography.Text type="secondary">Không tìm thấy kết quả</Typography.Text>
           ) : (
-            results.map((section) => (
-              <div key={section.section}>
-                <Group gap="xs" mb="xs">
-                  {getIconForSection(section.section)}
-                  <Badge size="sm" variant="light">
-                    {section.section}
-                  </Badge>
-                </Group>
+            results.map((section) => {
+              let offset = 0;
 
-                <Stack gap="xs" mb="lg">
-                  {section.items.map((item, itemIndex) => {
-                    // Tính toán global index
-                    const globalIndex = results
-                      .slice(0, results.indexOf(section))
-                      .reduce((acc, s) => acc + s.items.length, 0) + itemIndex;
+              for (const entry of results) {
+                if (entry.section === section.section) break;
+                offset += entry.items.length;
+              }
 
-                    return (
-                      <Box
-                        key={item.id}
-                        className={`${styles.commandItem} ${
-                          globalIndex === selectedIndex ? styles.selected : ""
-                        }`}
-                        onClick={() => item.action()}
-                      >
-                        <Group gap="xs" justify="space-between">
-                          <Text size="sm">{item.label}</Text>
-                          {item.icon && (
-                            <Badge size="xs" variant="default">
-                              {item.icon}
-                            </Badge>
-                          )}
-                        </Group>
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              </div>
-            ))
+              return (
+                <div key={section.section}>
+                  <Flex align="center" gap="small">
+                    {getSectionIcon(section.section)}
+                    <Tag color="purple">{section.section}</Tag>
+                  </Flex>
+
+                  <List
+                    dataSource={section.items}
+                    renderItem={(item, itemIndex) => {
+                      const globalIndex = offset + itemIndex;
+                      const selected = globalIndex === selectedIndex;
+
+                      return (
+                        <List.Item
+                          onClick={() => item.action()}
+                        >
+                          <Flex justify="space-between" align="center">
+                            <Typography.Text>{item.label}</Typography.Text>
+                            {item.icon ? <Tag>{item.icon}</Tag> : null}
+                          </Flex>
+                        </List.Item>
+                      );
+                    }}
+                  />
+                </div>
+              );
+            })
           )}
-        </Box>
+        </div>
 
-        <Text size="xs" c="dimmed">
-          ↑↓ để di chuyển · Enter để chọn · Esc để đóng
-        </Text>
-      </Stack>
+        <Typography.Text type="secondary">↑↓ để di chuyển, Enter để chọn, Esc để đóng</Typography.Text>
+      </Flex>
     </Modal>
   );
 }

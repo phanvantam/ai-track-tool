@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { notifications } from "@mantine/notifications";
+import { notifications } from "../lib/notify";
 import { getDiff, type SessionState } from "../api";
 
 interface UseDiffManagerReturn {

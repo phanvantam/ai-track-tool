@@ -1,6 +1,5 @@
-import { AppShell, Group, Text, Title } from "@mantine/core";
+import { Layout as AntLayout, Flex, Typography } from "antd";
 import type { ReactNode } from "react";
-import layoutStyles from "../styles/layout.module.css";
 
 interface LayoutProps {
   sidebar?: ReactNode;
@@ -8,37 +7,63 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+/**
+ * Khung ứng dụng chính bằng Ant Design.
+ * Giữ header cố định, phần content co giãn theo chiều cao màn hình.
+ */
 export function Layout({ sidebar, headerActions, children }: LayoutProps) {
   return (
-    <AppShell
-      padding={0}
-      header={{ height: 56 }}
-      navbar={sidebar ? { width: 300, breakpoint: "sm", collapsed: { desktop: false, mobile: true } } : undefined}
-    >
-      <AppShell.Header className={layoutStyles.appHeader}>
-        <Group h="100%" px="lg" justify="space-between">
-          <Group gap="sm">
-            <Text size="sm" fw={700} tt="uppercase" c="violet.4" className={layoutStyles.logoText}>
+    <AntLayout style={{ height: '100vh' }}>
+      <AntLayout.Header style={{ 
+        background: '#fff', 
+        padding: '0 24px', 
+        borderBottom: '1px solid #f0f0f0',
+        display: 'flex',
+        alignItems: 'center'
+      }}>
+        <Flex align="center" justify="space-between" style={{ width: '100%' }}>
+          <Flex align="center" gap="middle">
+            <Typography.Text strong style={{ fontSize: 16 }}>
               AI Track
-            </Text>
-            <Title order={4} fw={600} className={layoutStyles.appTitle}>
+            </Typography.Text>
+            <Typography.Title level={4} style={{ margin: 0 }}>
               Change Viewer
-            </Title>
-          </Group>
-          <Group gap="sm" wrap="nowrap">
+            </Typography.Title>
+          </Flex>
+
+          <Flex align="center" gap="small">
             {headerActions}
-            <Text size="xs" c="dimmed">
-              Local only
-            </Text>
-          </Group>
-        </Group>
-      </AppShell.Header>
+            <Typography.Text type="secondary">Local only</Typography.Text>
+          </Flex>
+        </Flex>
+      </AntLayout.Header>
 
-      {sidebar ? <AppShell.Navbar className={layoutStyles.appSidebar}>{sidebar}</AppShell.Navbar> : null}
-
-      <AppShell.Main className={layoutStyles.appMain}>
-        {children}
-      </AppShell.Main>
-    </AppShell>
+      <AntLayout style={{ height: 'calc(100vh - 64px)' }}>
+        {sidebar ? (
+          <AntLayout.Sider 
+            width={320} 
+            style={{ 
+              background: '#fff', 
+              borderRight: '1px solid #f0f0f0',
+              height: '100%',
+              overflow: 'hidden'
+            }}
+          >
+            <div style={{ height: '100%', overflow: 'auto', padding: 16 }}>
+              {sidebar}
+            </div>
+          </AntLayout.Sider>
+        ) : null}
+        
+        <AntLayout.Content style={{ 
+          height: '100%', 
+          overflow: 'hidden',
+          padding: 16,
+          background: '#f5f5f5'
+        }}>
+          {children}
+        </AntLayout.Content>
+      </AntLayout>
+    </AntLayout>
   );
 }

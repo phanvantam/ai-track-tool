@@ -1,16 +1,7 @@
-/**
- * SnapshotDrawerOverviewTab - Tab "Tổng quan" trong SnapshotDrawer
- * Hiển thị: snapshot info, restore button
- */
-
-import { Badge, Button, Group, Stack, Text } from "@mantine/core";
+import { Button, Card, Descriptions, Flex, Tag, Typography } from "antd";
 import { IconRestore } from "@tabler/icons-react";
-
 import type { SessionHistoryView } from "../../api";
-import { shortId } from "./helpers";
 import type { ConfirmDialogState } from "./types";
-import cardStyles from "../../styles/components/card.module.css";
-import historyStyles from "../../styles/components/history.module.css";
 
 interface SnapshotDrawerOverviewTabProps {
   selectedSnapshot: SessionHistoryView["snapshots"][0];
@@ -19,6 +10,9 @@ interface SnapshotDrawerOverviewTabProps {
   onClose: () => void;
 }
 
+/**
+ * Tab tổng quan snapshot.
+ */
 export function SnapshotDrawerOverviewTab({
   selectedSnapshot,
   onRestoreSnapshot,
@@ -26,87 +20,55 @@ export function SnapshotDrawerOverviewTab({
   onClose,
 }: SnapshotDrawerOverviewTabProps) {
   return (
-    <Stack gap="md">
-      <div className={cardStyles.inspectorCard}>
-        <Stack gap="sm">
-          <Group justify="space-between" align="flex-start">
-            <Stack gap={2}>
-              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-                Mốc đã chọn
-              </Text>
-               <Text size="sm" fw={600} className={historyStyles.historyId}>
-                {selectedSnapshot.snapshotId}
-              </Text>
-            </Stack>
-            <Group gap="xs">
-              {selectedSnapshot.isActive ? (
-                <Badge size="xs" color="violet">
-                  hiện tại
-                </Badge>
-              ) : null}
-              <Badge size="xs" variant="light">
-                {selectedSnapshot.fileCount} file
-              </Badge>
-            </Group>
-          </Group>
+    <Card>
+      <Flex vertical gap="middle">
+        <Flex justify="space-between" align="start">
+          <Flex vertical gap={4}>
+            <Typography.Text type="secondary">Mốc đã chọn</Typography.Text>
+            <Typography.Text strong>{selectedSnapshot.snapshotId}</Typography.Text>
+          </Flex>
+          <Flex gap="small" wrap="wrap">
+            {selectedSnapshot.isActive ? <Tag color="purple">hiện tại</Tag> : null}
+            <Tag>{selectedSnapshot.fileCount} file</Tag>
+          </Flex>
+        </Flex>
 
-          <div className={cardStyles.listItem}>
-            <Text size="xs" c="dimmed">
-              Thời gian
-            </Text>
-            <Text size="sm">
-              {new Date(selectedSnapshot.createdAt).toLocaleString("vi-VN")}
-            </Text>
-          </div>
+        <Descriptions column={1} bordered size="small">
+          <Descriptions.Item label="Thời gian">
+            {new Date(selectedSnapshot.createdAt).toLocaleString("vi-VN")}
+          </Descriptions.Item>
+          <Descriptions.Item label="Mốc cha">{selectedSnapshot.parentSnapshotId ?? "-"}</Descriptions.Item>
+          <Descriptions.Item label="Tóm tắt">{selectedSnapshot.summary ?? "Chưa có mô tả riêng."}</Descriptions.Item>
+        </Descriptions>
 
-          <div className={cardStyles.listItem}>
-            <Text size="xs" c="dimmed">
-              Mốc cha
-            </Text>
-            <Text size="sm" className={historyStyles.historyId}>
-              {selectedSnapshot.parentSnapshotId ?? "-"}
-            </Text>
-          </div>
-
-          <div className={cardStyles.listItem}>
-            <Text size="xs" c="dimmed">
-              Tóm tắt
-            </Text>
-            <Text size="sm">
-              {selectedSnapshot.summary ?? "Chưa có mô tả riêng."}
-            </Text>
-          </div>
-
-          {!selectedSnapshot.isActive ? (
-            <Group justify="flex-end">
-              <Button
-                color="orange"
-                leftSection={<IconRestore size={14} stroke={1.8} />}
-                onClick={() =>
-                  onOpenConfirm({
-                    title: "Xác nhận khôi phục về mốc này",
-                    description:
-                      "Toàn bộ project sẽ được đưa về đúng trạng thái của mốc đã chọn.",
-                    warnings: [
-                      "Workspace hiện tại sẽ bị ghi đè theo mốc đã chọn.",
-                      "Mốc hiện tại sẽ chuyển sang mốc này và danh sách thay đổi sẽ về 0.",
-                      "Nếu cần trạng thái hiện tại, hãy tạo mốc mới trước khi khôi phục.",
-                    ],
-                    confirmLabel: "Khôi phục mốc",
-                    confirmColor: "orange",
-                    onConfirm: () => {
-                      onClose();
-                      onRestoreSnapshot(selectedSnapshot.snapshotId);
-                    },
-                  })
-                }
-              >
-                Khôi phục về mốc này
-              </Button>
-            </Group>
-          ) : null}
-        </Stack>
-      </div>
-    </Stack>
+        {!selectedSnapshot.isActive ? (
+          <Flex justify="end">
+            <Button
+              type="primary"
+              icon={<IconRestore size={14} />}
+              onClick={() =>
+                onOpenConfirm({
+                  title: "Xác nhận khôi phục về mốc này",
+                  description: "Toàn bộ project sẽ được đưa về đúng trạng thái của mốc đã chọn.",
+                  warnings: [
+                    "Workspace hiện tại sẽ bị ghi đè theo mốc đã chọn.",
+                    "Mốc hiện tại sẽ chuyển sang mốc này và danh sách thay đổi sẽ về 0.",
+                    "Nếu cần trạng thái hiện tại, hãy tạo mốc mới trước khi khôi phục.",
+                  ],
+                  confirmLabel: "Khôi phục mốc",
+                  confirmColor: "orange",
+                  onConfirm: () => {
+                    onClose();
+                    onRestoreSnapshot(selectedSnapshot.snapshotId);
+                  },
+                })
+              }
+            >
+              Khôi phục về mốc này
+            </Button>
+          </Flex>
+        ) : null}
+      </Flex>
+    </Card>
   );
 }

@@ -1,4 +1,4 @@
-import { Button, Group, Modal, Progress, Stack, TextInput } from "@mantine/core";
+import { Button, Flex, Input, Modal, Progress, Typography } from "antd";
 import { type ChangeEvent, type KeyboardEvent, useState } from "react";
 
 interface AddProjectModalProps {
@@ -10,8 +10,7 @@ interface AddProjectModalProps {
 }
 
 /**
- * Modal thêm project mới.
- * Cho phép nhập path và thêm project với progress bar.
+ * Modal thêm project bằng AntD.
  */
 export function AddProjectModal({
   isOpen,
@@ -24,7 +23,7 @@ export function AddProjectModal({
 
   async function handleSubmit() {
     if (!newPath.trim()) return;
-    await onAdd(newPath);
+    await onAdd(newPath.trim());
     setNewPath("");
   }
 
@@ -41,41 +40,39 @@ export function AddProjectModal({
 
   return (
     <Modal
-      opened={isOpen}
-      onClose={onClose}
-      title="Thêm Project Mới"
+      open={isOpen}
+      onCancel={onClose}
+      title="Thêm project mới"
+      footer={null}
       centered
-      closeOnClickOutside={!loading}
-      closeOnEscape={!loading}
+      maskClosable={!loading}
+      keyboard={!loading}
+      destroyOnHidden
     >
-      <Stack gap="md">
-        <TextInput
-          label="Đường dẫn Project"
-          placeholder="/path/to/project"
-          value={newPath}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          disabled={loading}
-          autoFocus
-        />
-        {loading && <Progress value={progress} />}
-        <Group justify="flex-end" gap="sm">
-          <Button
-            variant="default"
-            onClick={onClose}
+      <Flex vertical gap="middle">
+        <div>
+          <Typography.Text type="secondary">Đường dẫn project</Typography.Text>
+          <Input
+            placeholder="/path/to/project"
+            value={newPath}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             disabled={loading}
-          >
+            autoFocus
+          />
+        </div>
+
+        {loading ? <Progress percent={progress} showInfo={false} /> : null}
+
+        <Flex justify="end" gap="small">
+          <Button onClick={onClose} disabled={loading}>
             Hủy
           </Button>
-          <Button
-            onClick={() => void handleSubmit()}
-            loading={loading}
-            disabled={!newPath.trim()}
-          >
+          <Button type="primary" onClick={() => void handleSubmit()} loading={loading} disabled={!newPath.trim()}>
             Thêm
           </Button>
-        </Group>
-      </Stack>
+        </Flex>
+      </Flex>
     </Modal>
   );
 }

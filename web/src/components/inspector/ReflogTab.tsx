@@ -1,46 +1,53 @@
-/**
- * ReflogTab component - tab Reflog trong InspectorPanel
- * Hiển thị reflog entries - lịch sử tất cả thay đổi snapshots
- * Sử dụng virtual scrolling cho performance tối ưu
- */
-
-import { Badge, Group, Stack, Text } from "@mantine/core";
-
+import { Card, Flex, List, Tag, Typography } from "antd";
 import type { ReflogTabProps } from "./types";
-import { VirtualReflogList } from "./VirtualReflogList";
-import layoutStyles from "../../styles/layout.module.css";
-import cardStyles from "../../styles/components/card.module.css";
 
+/**
+ * Tab reflog bằng AntD List.
+ */
 export function ReflogTab({ history }: ReflogTabProps) {
   return (
-    <div className={layoutStyles.inspectorPanelFill}>
-      <Stack gap="md" p="md">
-        {/* Reflog Stats Card */}
-        <div className={cardStyles.inspectorCard}>
-          <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={8}>
-            Thống kê reflog
-          </Text>
-          <Group gap="xs" wrap="wrap">
-            <Badge>Total {history?.reflogStats.totalEntries ?? 0}</Badge>
-            {Object.entries(history?.reflogStats.actionCounts ?? {}).map(
-              ([action, count]) => (
-                <Badge key={action} size="xs" variant="light">
-                  {action}: {count}
-                </Badge>
-              )
-            )}
-          </Group>
-        </div>
+    <div>
+      <Flex vertical gap="middle">
+        <Card title="Thống kê reflog">
+          <Flex gap="small" wrap="wrap">
+            <Tag>Total {history?.reflogStats.totalEntries ?? 0}</Tag>
+            {Object.entries(history?.reflogStats.actionCounts ?? {}).map(([action, count]) => (
+              <Tag key={action} color="blue">
+                {action}: {count}
+              </Tag>
+            ))}
+          </Flex>
+        </Card>
 
-        {/* Reflog Entries - Virtual Scrolling */}
-        {(history?.reflog ?? []).length > 0 ? (
-          <VirtualReflogList entries={history?.reflog ?? []} height={400} />
-        ) : (
-          <Text size="sm" c="dimmed">
-            Reflog trống.
-          </Text>
-        )}
-      </Stack>
+        <Card title="Reflog entries">
+          <List
+            dataSource={history?.reflog ?? []}
+            locale={{ emptyText: "Reflog trống." }}
+            renderItem={(entry) => (
+              <List.Item>
+                <Flex vertical gap={4}>
+                  <Flex gap="small" wrap="wrap">
+                    <Tag>{entry.action}</Tag>
+                    <Typography.Text type="secondary">
+                      {new Date(entry.timestamp).toLocaleString("vi-VN")}
+                    </Typography.Text>
+                  </Flex>
+                  <Typography.Text>
+                    {entry.reason ?? `${entry.fromSnapshotId ?? "-"} -> ${entry.toSnapshotId ?? "-"}`}
+                  </Typography.Text>
+                  {entry.metadata ? (
+                    <Typography.Text type="secondary">
+                      {Object.entries(entry.metadata)
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(" · ")}
+                    </Typography.Text>
+                  ) : null}
+                </Flex>
+              </List.Item>
+            )}
+          />
+        </Card>
+      </Flex>
     </div>
   );
 }

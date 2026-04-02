@@ -1,16 +1,7 @@
-/**
- * SnapshotDrawerCompareTab - Tab "So sánh" trong SnapshotDrawer
- * Hiển thị: diff list vs current, modal chi tiết diff
- */
-
-import { Badge, Group, Modal, Stack, Text } from "@mantine/core";
+import { Card, Flex, List, Modal, Tag, Typography } from "antd";
 import { useState } from "react";
-
-import type { SnapshotDiffEntry, SessionHistoryView } from "../../api";
-import { labelForDiffType, getDiffLineClass, shortId } from "./helpers";
-import cardStyles from "../../styles/components/card.module.css";
-import historyStyles from "../../styles/components/history.module.css";
-import diffStyles from "../../styles/components/diff.module.css";
+import type { SessionHistoryView, SnapshotDiffEntry } from "../../api";
+import { getDiffLineClass, labelForDiffType, shortId } from "./helpers";
 
 interface SnapshotDrawerCompareTabProps {
   selectedSnapshot: SessionHistoryView["snapshots"][0];
@@ -20,6 +11,9 @@ interface SnapshotDrawerCompareTabProps {
   onSelectSnapshotDiffPath: (path: string) => void;
 }
 
+/**
+ * Tab so sánh snapshot bằng AntD List/Modal.
+ */
 export function SnapshotDrawerCompareTab({
   selectedSnapshot,
   snapshotDiffs,
@@ -31,184 +25,94 @@ export function SnapshotDrawerCompareTab({
 
   return (
     <>
-      <div className={cardStyles.inspectorCard}>
-        <Text
-          size="xs"
-          fw={700}
-          tt="uppercase"
-          c="dimmed"
-          mb={8}
-        >
-          So sánh với mốc hiện tại
-        </Text>
+      <Card title="So sánh với mốc hiện tại">
         {selectedSnapshot.isActive ? (
-          <Text size="sm" c="dimmed">
-            Đây là mốc hiện tại.
-          </Text>
+          <Typography.Text type="secondary">Đây là mốc hiện tại.</Typography.Text>
         ) : snapshotDiffs.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            Không có khác biệt với mốc hiện tại.
-          </Text>
+          <Typography.Text type="secondary">Không có khác biệt với mốc hiện tại.</Typography.Text>
         ) : (
-          <Stack gap="md">
-            <Group gap="xs">
-              <Badge size="xs" variant="light">
-                {snapshotDiffs.length} thay đổi
-              </Badge>
-              <Badge size="xs" color="green">
-                +{snapshotDiffs.filter((entry) => entry.type === "added").length}
-              </Badge>
-              <Badge size="xs" color="yellow">
-                ~{snapshotDiffs.filter((entry) => entry.type === "modified").length}
-              </Badge>
-              <Badge size="xs" color="red">
-                -{snapshotDiffs.filter((entry) => entry.type === "deleted").length}
-              </Badge>
-            </Group>
+          <Flex vertical gap="middle">
+            <Flex gap="small" wrap="wrap">
+              <Tag>{snapshotDiffs.length} thay đổi</Tag>
+              <Tag color="green">+{snapshotDiffs.filter((entry) => entry.type === "added").length}</Tag>
+              <Tag color="gold">~{snapshotDiffs.filter((entry) => entry.type === "modified").length}</Tag>
+              <Tag color="red">-{snapshotDiffs.filter((entry) => entry.type === "deleted").length}</Tag>
+            </Flex>
 
-            <Stack gap={6}>
-              {snapshotDiffs.map((entry) => (
-                <button
-                  key={`${entry.type}-${entry.path}`}
-                  type="button"
-                  className={`${historyStyles.historyItem} ${
-                    selectedSnapshotDiffPath === entry.path
-                      ? historyStyles.historyItemSelected
-                      : ""
-                  }`}
-                  title={entry.path}
-                  onClick={() => {
-                    onSelectSnapshotDiffPath(entry.path);
-                    setCompareDiffOpened(true);
-                  }}
-                >
-                  <Group
-                    justify="space-between"
-                    align="center"
-                    wrap="nowrap"
-                    className={`${cardStyles.listItem} ${historyStyles.compareListItem}`}
+            <List
+              dataSource={snapshotDiffs}
+              renderItem={(entry) => (
+                <List.Item>
+                  <Card
+                    hoverable
+                    size="small"
+                    onClick={() => {
+                      onSelectSnapshotDiffPath(entry.path);
+                      setCompareDiffOpened(true);
+                    }}
                   >
-                    <Text
-                      size="sm"
-                      className={historyStyles.comparePathText}
-                      title={entry.path}
-                    >
-                      {entry.path}
-                    </Text>
-                    <Group
-                      gap={6}
-                      wrap="nowrap"
-                      className={historyStyles.compareListMeta}
-                    >
-                      <Badge
-                        size="xs"
-                        variant="light"
-                        color={
-                          entry.type === "added"
-                            ? "green"
-                            : entry.type === "deleted"
-                              ? "red"
-                              : "yellow"
-                        }
-                      >
-                        {labelForDiffType(entry.type)}
-                      </Badge>
-                      <Badge size="xs" variant="dot">
-                        {entry.changeCount ?? 0}
-                      </Badge>
-                      <Badge size="xs" color="green" variant="light">
-                        +{entry.insertions ?? 0}
-                      </Badge>
-                      <Badge size="xs" color="red" variant="light">
-                        -{entry.deletions ?? 0}
-                      </Badge>
-                    </Group>
-                  </Group>
-                </button>
-              ))}
-            </Stack>
-            <Text size="sm" c="dimmed">
-              Bấm vào một file để mở modal xem diff chi tiết.
-            </Text>
-          </Stack>
+                    <Flex justify="space-between" align="center" wrap="wrap" gap="small">
+                      <Typography.Text>{entry.path}</Typography.Text>
+                      <Flex gap="small" wrap="wrap">
+                        <Tag color={entry.type === "added" ? "green" : entry.type === "deleted" ? "red" : "gold"}>
+                          {labelForDiffType(entry.type)}
+                        </Tag>
+                        <Tag>{entry.changeCount ?? 0}</Tag>
+                        <Tag color="green">+{entry.insertions ?? 0}</Tag>
+                        <Tag color="red">-{entry.deletions ?? 0}</Tag>
+                      </Flex>
+                    </Flex>
+                  </Card>
+                </List.Item>
+              )}
+            />
+          </Flex>
         )}
-      </div>
+      </Card>
 
-      {/* Diff Modal */}
       <Modal
-        opened={compareDiffOpened && !!selectedSnapshotDiffPath}
-        onClose={() => setCompareDiffOpened(false)}
-        title={
-          selectedSnapshotDiffPath
-            ? `Diff ${selectedSnapshotDiffPath}`
-            : "Diff giữa hai mốc"
-        }
+        open={compareDiffOpened && Boolean(selectedSnapshotDiffPath)}
+        onCancel={() => setCompareDiffOpened(false)}
+        title={selectedSnapshotDiffPath ? `Diff ${selectedSnapshotDiffPath}` : "Diff giữa hai mốc"}
+        footer={null}
+        width={960}
         centered
-        radius="md"
-        size="xl"
-        classNames={{
-          content: "project-modal",
-          header: "project-modal-header",
-          title: "project-modal-title",
-        }}
+        destroyOnHidden
       >
-        <Stack gap="md">
-          {selectedSnapshot && selectedSnapshotDiffPath ? (
-            <>
-              <Group gap="xs" wrap="wrap">
-                <Badge size="xs" variant="light">{`${shortId(
-                  selectedSnapshot.snapshotId
-                )} -> mốc hiện tại`}</Badge>
-                {snapshotDiffs
-                  .filter((entry) => entry.path === selectedSnapshotDiffPath)
-                  .map((entry) => (
-                    <Group key={entry.path} gap="xs" wrap="wrap">
-                      <Badge
-                        size="xs"
-                        color={
-                          entry.type === "added"
-                            ? "green"
-                            : entry.type === "deleted"
-                              ? "red"
-                              : "yellow"
-                        }
-                      >
-                        {labelForDiffType(entry.type)}
-                      </Badge>
-                      <Badge size="xs" variant="dot">
-                        {entry.changeCount ?? 0} dòng đổi
-                      </Badge>
-                      <Badge size="xs" color="green" variant="light">
-                        +{entry.insertions ?? 0}
-                      </Badge>
-                      <Badge size="xs" color="red" variant="light">
-                        -{entry.deletions ?? 0}
-                      </Badge>
-                    </Group>
-                  ))}
-              </Group>
-              <div className={`${cardStyles.inspectorCard} ${cardStyles.inspectorGraphCard}`}>
-                <div className={diffStyles.diffBlock}>
-                  {snapshotDiffText.split("\n").map((line, index) => (
-                    <Text
-                      key={`${index}-${line}`}
-                      component="pre"
-                      ff="monospace"
-                      size="xs"
-                      className={`${diffStyles.diffLine} ${getDiffLineClass(line)}`}
-                    >
-                      {line || " "}
-                    </Text>
-                  ))}
-                </div>
+        {selectedSnapshot && selectedSnapshotDiffPath ? (
+          <Flex vertical gap="middle">
+            <Flex gap="small" wrap="wrap">
+              <Tag>{`${shortId(selectedSnapshot.snapshotId)} -> mốc hiện tại`}</Tag>
+              {snapshotDiffs
+                .filter((entry) => entry.path === selectedSnapshotDiffPath)
+                .map((entry) => (
+                  <Flex key={entry.path} gap="small" wrap="wrap">
+                    <Tag color={entry.type === "added" ? "green" : entry.type === "deleted" ? "red" : "gold"}>
+                      {labelForDiffType(entry.type)}
+                    </Tag>
+                    <Tag>{entry.changeCount ?? 0} dòng đổi</Tag>
+                    <Tag color="green">+{entry.insertions ?? 0}</Tag>
+                    <Tag color="red">-{entry.deletions ?? 0}</Tag>
+                  </Flex>
+                ))}
+            </Flex>
+
+            <Card>
+              <div>
+                {snapshotDiffText.split("\n").map((line, index) => (
+                  <pre
+                    key={`${index}-${line}`}
+                    className={getDiffLineClass(line)}
+                  >
+                    {line || " "}
+                  </pre>
+                ))}
               </div>
-            </>
-          ) : (
-            <Text size="sm" c="dimmed">
-              Chưa có file nào được chọn để xem diff.
-            </Text>
-          )}
-        </Stack>
+            </Card>
+          </Flex>
+        ) : (
+          <Typography.Text type="secondary">Chưa có file nào được chọn để xem diff.</Typography.Text>
+        )}
       </Modal>
     </>
   );

@@ -1,10 +1,7 @@
-import { ActionIcon, Badge, CopyButton, Group, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
-import { IconArrowsMaximize, IconCheck, IconCopy, IconRestore } from "@tabler/icons-react";
+import { Button, Card, Flex, Tag, Tooltip, Typography, notification } from "antd";
+import { IconArrowsMaximize, IconCopy, IconRestore } from "@tabler/icons-react";
 import { useState } from "react";
-
 import type { ChangeEntry } from "../api";
-import layoutStyles from "../styles/layout.module.css";
-import diffStyles from "../styles/components/diff.module.css";
 
 interface DiffPanelProps {
   selectedChange: ChangeEntry | null;
@@ -14,97 +11,78 @@ interface DiffPanelProps {
   loading: boolean;
 }
 
+/**
+ * Panel diff bằng AntD Card và Button.
+ */
 export function DiffPanel({ selectedChange, diff, onRollback, canRollback, loading }: DiffPanelProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  return (
-    <div className={`${layoutStyles.diffContainer} ${isFullscreen ? layoutStyles.diffContainerFullscreen : ""}`}>
-      <div className={layoutStyles.diffHeader}>
-        <Stack gap={4}>
-          <Group gap="xs">
-            <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-              Diff
-            </Text>
-            {selectedChange && (
-              <Badge size="xs" variant="light" color={badgeColor(selectedChange.type)} radius="sm">
-                {selectedChange.type}
-              </Badge>
-            )}
-            {selectedChange?.isBinary && (
-              <Badge size="xs" variant="dot" color="gray" radius="sm">
-                binary
-              </Badge>
-            )}
-          </Group>
-           <Text size="xs" fw={500} className={diffStyles.diffFilename} lineClamp={1}>
-            {selectedChange?.path ?? "Chọn một file để xem thay đổi"}
-          </Text>
-        </Stack>
-        {selectedChange && (
-          <Group gap="xs">
-            <Tooltip label="Khôi phục file này" position="bottom">
-              <ActionIcon variant="light" color="red" size="md" onClick={onRollback} disabled={!canRollback} loading={loading}>
-                <IconRestore size={16} stroke={1.8} />
-              </ActionIcon>
-            </Tooltip>
-            <CopyButton value={diff}>
-              {({ copied, copy }) => (
-                <Tooltip label={copied ? "Đã copy" : "Copy diff"} position="bottom">
-                  <ActionIcon variant="light" color={copied ? "green" : "gray"} size="md" onClick={copy}>
-                    {copied ? <IconCheck size={16} stroke={1.8} /> : <IconCopy size={16} stroke={1.8} />}
-                  </ActionIcon>
-                </Tooltip>
-              )}
-            </CopyButton>
-            <Tooltip label={isFullscreen ? "Thu nhỏ" : "Fullscreen"} position="bottom">
-              <ActionIcon variant="light" color="gray" size="md" onClick={() => setIsFullscreen(!isFullscreen)}>
-                <IconArrowsMaximize size={16} stroke={1.8} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        )}
-      </div>
+  async function handleCopy() {
+    await navigator.clipboard.writeText(diff);
+    notification.success({ message: "Đã copy diff", placement: "topRight" });
+  }
 
-      <ScrollArea className={layoutStyles.diffScroll} style={{ flex: 1 }}>
-        {!selectedChange ? (
-          <div className={layoutStyles.diffEmpty}>
-            <Text size="sm" c="dimmed">
-              Chưa có file nào được chọn
-            </Text>
-          </div>
-        ) : (
-          <div className={diffStyles.diffBlock}>
-            {diff.split("\n").map((line, index) => (
-              <Text
-                key={`${index}-${line}`}
-                component="pre"
-                ff="monospace"
-                size="xs"
-                className={`${diffStyles.diffLine} ${getDiffLineClass(line)}`}
-              >
-                {line || " "}
-              </Text>
-            ))}
-          </div>
-        )}
-      </ScrollArea>
-    </div>
+  return (
+    <Card 
+      title={
+        <Flex justify="space-between" align="center">
+          <Flex align="center" gap="small">
+            <span>Diff</span>
+            {selectedChange ? <Tag color={badgeColor(selectedChange.type)}>{selectedChange.type}</Tag> : null}
+            {selectedChange?.isBinary ? <Tag>binary</Tag> : null}
+          </Flex>
+
+          {selectedChange ? (
+            <Flex gap="small">
+              <Tooltip title="Khôi phục file này">
+                <Button size="small" danger icon={<IconRestore size={16} />} onClick={onRollback} disabled={!canRollback} loading={loading} />
+              </Tooltip>
+              <Tooltip title="Copy diff">
+                <Button size="small" icon={<IconCopy size={16} />} onClick={() => void handleCopy()} />
+              </Tooltip>
+              <Tooltip title={isFullscreen ? "Thu nhỏ" : "Fullscreen"}>
+                <Button size="small" icon={<IconArrowsMaximize size={16} />} onClick={() => setIsFullscreen((prev) => !prev)} />
+              </Tooltip>
+            </Flex>
+          ) : null}
+        </Flex>
+      }
+      style={{ height: '100%' }}
+      bodyStyle={{ padding: 0, height: 'calc(100% - 57px)', overflow: 'hidden' }}
+    >
+      {!selectedChange ? (
+        <Flex align="center" justify="center" style={{ height: '100%' }}>
+          <Typography.Text type="secondary">Chọn một file để xem thay đổi</Typography.Text>
+        </Flex>
+      ) : (
+        <div className="diff-container">
+          {diff.split("\n").map((line, index) => (
+            <pre 
+              key={index}
+              className={`diff-line ${getDiffLineClass(line)}`}
+            >
+              {line || " "}
+            </pre>
+          ))}
+        </div>
+      )}
+    </Card>
   );
 }
 
-function badgeColor(type: ChangeEntry["type"]): string {
+function badgeColor(type: ChangeEntry["type"]) {
   if (type === "added") return "green";
   if (type === "deleted") return "red";
   if (type === "renamed") return "blue";
-  return "yellow";
+  return "gold";
 }
 
 function getDiffLineClass(line: string): string {
-  if (line.startsWith("@@")) return diffStyles.diffLineMeta;
-  if (line.startsWith("+") && !line.startsWith("+++")) return diffStyles.diffLineAdded;
-  if (line.startsWith("-") && !line.startsWith("---")) return diffStyles.diffLineRemoved;
+  if (line.startsWith("@@")) return "diff-meta";
+  if (line.startsWith("+") && !line.startsWith("+++")) return "diff-added";
+  if (line.startsWith("-") && !line.startsWith("---")) return "diff-removed";
   if (line.startsWith("Index:") || line.startsWith("===") || line.startsWith("+++") || line.startsWith("---")) {
-    return diffStyles.diffLineHeader;
+    return "diff-header";
   }
   return "";
 }

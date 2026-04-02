@@ -1,4 +1,4 @@
-import { Button, Group, Modal, Stack, Text, TextInput } from "@mantine/core";
+import { Button, Flex, Input, Modal, Typography } from "antd";
 import { type ChangeEvent, useEffect, useState } from "react";
 import type { ConfigPayload } from "../../api";
 
@@ -11,8 +11,7 @@ interface SettingsModalProps {
 }
 
 /**
- * Modal cấu hình ứng dụng.
- * Cho phép chỉnh sửa storage directory và lưu.
+ * Modal cấu hình bằng AntD.
  */
 export function SettingsModal({
   isOpen,
@@ -27,7 +26,7 @@ export function SettingsModal({
     if (isOpen && config) {
       setStorageDirInput(config.config.storageDir ?? "");
     }
-  }, [isOpen, config]);
+  }, [config, isOpen]);
 
   async function handleSave() {
     await onSave(storageDirInput.trim() || null);
@@ -40,41 +39,35 @@ export function SettingsModal({
 
   return (
     <Modal
-      opened={isOpen}
-      onClose={onClose}
-      title="Cấu Hình"
+      open={isOpen}
+      onCancel={onClose}
+      title="Cấu hình"
+      footer={null}
       centered
-      closeOnClickOutside={!loading}
-      closeOnEscape={!loading}
+      maskClosable={!loading}
+      keyboard={!loading}
+      destroyOnHidden
     >
-      <Stack gap="md">
+      <Flex vertical gap="middle">
         <div>
-          <Text size="xs" c="dimmed" mb="xs">
-            Storage Directory (để trống = mặc định)
-          </Text>
-          <TextInput
+          <Typography.Text type="secondary">Storage Directory (để trống = mặc định)</Typography.Text>
+          <Input
             placeholder="/path/to/storage"
             value={storageDirInput}
             onChange={handleInputChange}
             disabled={loading}
           />
         </div>
-        <Group justify="flex-end" gap="sm">
-          <Button
-            variant="default"
-            onClick={onClose}
-            disabled={loading}
-          >
+
+        <Flex justify="end" gap="small">
+          <Button onClick={onClose} disabled={loading}>
             Hủy
           </Button>
-          <Button
-            onClick={() => void handleSave()}
-            loading={loading}
-          >
+          <Button type="primary" onClick={() => void handleSave()} loading={loading}>
             Lưu
           </Button>
-        </Group>
-      </Stack>
+        </Flex>
+      </Flex>
     </Modal>
   );
 }

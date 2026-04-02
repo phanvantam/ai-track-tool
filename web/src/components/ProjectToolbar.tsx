@@ -1,8 +1,14 @@
-import { ActionIcon, Group, Menu, Select } from "@mantine/core";
-import { IconDotsVertical, IconFolderPlus, IconPlayerPause, IconPlayerPlay, IconRefresh, IconSettings, IconTrash } from "@tabler/icons-react";
-
+import { Button, Dropdown, Flex, Select, Space } from "antd";
+import {
+  IconDotsVertical,
+  IconFolderPlus,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconRefresh,
+  IconSettings,
+  IconTrash,
+} from "@tabler/icons-react";
 import type { SessionState } from "../api";
-import inputStyles from "../styles/components/input.module.css";
 
 interface ProjectToolbarProps {
   sessions: SessionState[];
@@ -17,6 +23,10 @@ interface ProjectToolbarProps {
   onRemove: () => void;
 }
 
+/**
+ * Thanh công cụ project bằng AntD.
+ * Dùng control chuẩn thay vì custom UI cũ.
+ */
 export function ProjectToolbar({
   sessions,
   activeSessionId,
@@ -35,57 +45,51 @@ export function ProjectToolbar({
   }));
 
   const activeSession = sessions.find((session) => session.id === activeSessionId);
-  const isWatching = activeSession?.watchStatus === "watching" || activeSession?.watchStatus === "refreshing";
+  const isWatching =
+    activeSession?.watchStatus === "watching" || activeSession?.watchStatus === "refreshing";
+
+  const menuItems = activeSession
+    ? [
+        {
+          key: isWatching ? "pause" : "resume",
+          label: isWatching ? "Tạm dừng theo dõi" : "Tiếp tục theo dõi",
+          icon: isWatching ? <IconPlayerPause size={14} /> : <IconPlayerPlay size={14} />,
+          onClick: isWatching ? onPause : onResume,
+        },
+        { type: "divider" as const },
+        {
+          key: "remove",
+          label: "Xóa project",
+          icon: <IconTrash size={14} />,
+          danger: true,
+          onClick: onRemove,
+        },
+      ]
+    : [];
 
   return (
-    <Group gap="xs" wrap="nowrap" className={inputStyles.projectSwitcher}>
+    <Flex gap="small" align="center" wrap="wrap">
       <Select
         placeholder="Chọn project"
-        data={projectOptions}
-        value={activeSessionId}
-        onChange={onSessionChange}
-        className={inputStyles.projectSelect}
-        checkIconPosition="right"
-        allowDeselect={false}
-        searchable
-        nothingFoundMessage="Không có project"
+        options={projectOptions}
+        value={activeSessionId ?? undefined}
+        onChange={(value) => onSessionChange(value ?? null)}
+        showSearch
+        optionFilterProp="label"
       />
-      <ActionIcon variant="light" size="lg" radius="md" onClick={onAddProject} aria-label="Thêm project">
-        <IconFolderPlus size={18} stroke={1.8} />
-      </ActionIcon>
-      <ActionIcon variant="light" size="lg" radius="md" onClick={onSettings} aria-label="Cấu hình lưu trữ">
-        <IconSettings size={18} stroke={1.8} />
-      </ActionIcon>
-      {activeSession ? (
-        <>
-          <ActionIcon variant="light" size="lg" radius="md" onClick={onRefresh} loading={loading} aria-label="Làm mới">
-            <IconRefresh size={18} stroke={1.8} />
-          </ActionIcon>
-          <Menu shadow="md" width={200} position="bottom-end">
-            <Menu.Target>
-              <ActionIcon variant="light" size="lg" radius="md" aria-label="Thêm tùy chọn">
-                <IconDotsVertical size={18} stroke={1.8} />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Label>Thao tác project</Menu.Label>
-              {isWatching ? (
-                <Menu.Item leftSection={<IconPlayerPause size={14} stroke={1.8} />} onClick={onPause}>
-                  Tạm dừng theo dõi
-                </Menu.Item>
-              ) : (
-                <Menu.Item leftSection={<IconPlayerPlay size={14} stroke={1.8} />} onClick={onResume}>
-                  Tiếp tục theo dõi
-                </Menu.Item>
-              )}
-              <Menu.Divider />
-              <Menu.Item color="red" leftSection={<IconTrash size={14} stroke={1.8} />} onClick={onRemove}>
-                Xóa project
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        </>
-      ) : null}
-    </Group>
+
+      <Space.Compact>
+        <Button icon={<IconFolderPlus size={16} />} onClick={onAddProject}>
+          Thêm
+        </Button>
+        <Button icon={<IconSettings size={16} />} onClick={onSettings} />
+        <Button icon={<IconRefresh size={16} />} onClick={onRefresh} loading={loading} disabled={!activeSession} />
+        {activeSession ? (
+          <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+            <Button icon={<IconDotsVertical size={16} />} />
+          </Dropdown>
+        ) : null}
+      </Space.Compact>
+    </Flex>
   );
 }

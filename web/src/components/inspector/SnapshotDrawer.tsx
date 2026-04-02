@@ -1,20 +1,14 @@
-/**
- * SnapshotDrawer component - drawer chứa 3 tabs
- * Orchestrator cho 3 DrawerTab: Overview, Metadata, Compare
- * Chỉ quản lý drawer state (opened/closed, tab selection)
- */
-
+import { Drawer, Tabs } from "antd";
 import { useState } from "react";
-import { Drawer, Tabs } from "@mantine/core";
-
-import type { SnapshotDiffEntry, SessionHistoryView } from "../../api";
 import { shortId } from "./helpers";
 import type { SnapshotDrawerProps } from "./types";
-import { SnapshotDrawerOverviewTab } from "./SnapshotDrawerOverviewTab";
-import { SnapshotDrawerMetadataTab } from "./SnapshotDrawerMetadataTab";
 import { SnapshotDrawerCompareTab } from "./SnapshotDrawerCompareTab";
-import modalStyles from "../../styles/components/modal.module.css";
+import { SnapshotDrawerMetadataTab } from "./SnapshotDrawerMetadataTab";
+import { SnapshotDrawerOverviewTab } from "./SnapshotDrawerOverviewTab";
 
+/**
+ * Drawer chi tiết snapshot bằng AntD.
+ */
 export function SnapshotDrawer({
   opened,
   onClose,
@@ -31,66 +25,63 @@ export function SnapshotDrawer({
   onDeleteNote,
   onOpenConfirm,
 }: SnapshotDrawerProps) {
-  const [drawerTab, setDrawerTab] = useState<string | null>("overview");
+  const [activeKey, setActiveKey] = useState("overview");
 
   return (
     <Drawer
-      opened={opened && !!selectedSnapshot}
+      open={opened && Boolean(selectedSnapshot)}
       onClose={onClose}
-      title={
-        selectedSnapshot
-          ? `Mốc ${shortId(selectedSnapshot.snapshotId)}`
-          : "Chi tiết mốc"
-      }
-      position="right"
-      size="lg"
-      classNames={{ body: modalStyles.modalBody }}
+      title={selectedSnapshot ? `Mốc ${shortId(selectedSnapshot.snapshotId)}` : "Chi tiết mốc"}
+      placement="right"
+      width={760}
+      destroyOnHidden
     >
       {selectedSnapshot ? (
         <Tabs
-          value={drawerTab}
-          onChange={setDrawerTab}
-          className={modalStyles.drawerTabs}
-        >
-          <Tabs.List>
-            <Tabs.Tab value="overview">Tổng quan</Tabs.Tab>
-            <Tabs.Tab value="metadata">Tag & note</Tabs.Tab>
-            <Tabs.Tab value="compare">So sánh</Tabs.Tab>
-          </Tabs.List>
-
-          {/* Overview Tab */}
-          <Tabs.Panel value="overview" pt="md">
-            <SnapshotDrawerOverviewTab
-              selectedSnapshot={selectedSnapshot}
-              onRestoreSnapshot={onRestoreSnapshot}
-              onOpenConfirm={onOpenConfirm}
-              onClose={onClose}
-            />
-          </Tabs.Panel>
-
-          {/* Metadata Tab */}
-          <Tabs.Panel value="metadata" pt="md">
-            <SnapshotDrawerMetadataTab
-              selectedSnapshot={selectedSnapshot}
-              onCreateTag={onCreateTag}
-              onDeleteTag={onDeleteTag}
-              onSaveNote={onSaveNote}
-              onDeleteNote={onDeleteNote}
-              onOpenConfirm={onOpenConfirm}
-            />
-          </Tabs.Panel>
-
-          {/* Compare Tab */}
-          <Tabs.Panel value="compare" pt="md">
-            <SnapshotDrawerCompareTab
-              selectedSnapshot={selectedSnapshot}
-              snapshotDiffs={snapshotDiffs}
-              selectedSnapshotDiffPath={selectedSnapshotDiffPath}
-              snapshotDiffText={snapshotDiffText}
-              onSelectSnapshotDiffPath={onSelectSnapshotDiffPath}
-            />
-          </Tabs.Panel>
-        </Tabs>
+          activeKey={activeKey}
+          onChange={setActiveKey}
+          items={[
+            {
+              key: "overview",
+              label: "Tổng quan",
+              children: (
+                <SnapshotDrawerOverviewTab
+                  selectedSnapshot={selectedSnapshot}
+                  onRestoreSnapshot={onRestoreSnapshot}
+                  onOpenConfirm={onOpenConfirm}
+                  onClose={onClose}
+                />
+              ),
+            },
+            {
+              key: "metadata",
+              label: "Tag & note",
+              children: (
+                <SnapshotDrawerMetadataTab
+                  selectedSnapshot={selectedSnapshot}
+                  onCreateTag={onCreateTag}
+                  onDeleteTag={onDeleteTag}
+                  onSaveNote={onSaveNote}
+                  onDeleteNote={onDeleteNote}
+                  onOpenConfirm={onOpenConfirm}
+                />
+              ),
+            },
+            {
+              key: "compare",
+              label: "So sánh",
+              children: (
+                <SnapshotDrawerCompareTab
+                  selectedSnapshot={selectedSnapshot}
+                  snapshotDiffs={snapshotDiffs}
+                  selectedSnapshotDiffPath={selectedSnapshotDiffPath}
+                  snapshotDiffText={snapshotDiffText}
+                  onSelectSnapshotDiffPath={onSelectSnapshotDiffPath}
+                />
+              ),
+            },
+          ]}
+        />
       ) : null}
     </Drawer>
   );

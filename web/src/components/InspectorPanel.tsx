@@ -1,21 +1,12 @@
-/**
- * InspectorPanel - Orchestrator component
- * Quản lý 5 tabs (Diff/History/Health/Reflog) + SnapshotDrawer
- * Xử lý tab selection, state chung (confirmState), props passing
- */
-
-import { useState } from "react";
-import { Button, Group, Modal, Stack, Tabs, Text } from "@mantine/core";
+import { Alert, Button, Flex, Modal, Tabs, Typography } from "antd";
+import { useMemo, useState } from "react";
 import {
-  IconAlertTriangle,
   IconCheck,
   IconDatabaseCog,
   IconHistory,
   IconPlaylistX,
   IconWand,
-  IconX,
 } from "@tabler/icons-react";
-
 import type {
   ChangeEntry,
   FsckReport,
@@ -33,7 +24,6 @@ import {
   SnapshotDrawer,
   type ConfirmDialogState,
 } from "./inspector";
-import layoutStyles from "../styles/layout.module.css";
 
 interface InspectorPanelProps {
   session: SessionState;
@@ -63,6 +53,9 @@ interface InspectorPanelProps {
   onSelectSnapshotDiffPath: (relativePath: string) => void;
 }
 
+/**
+ * Inspector chính bằng AntD Tabs và Drawer.
+ */
 export function InspectorPanel({
   session,
   selectedChange,
@@ -90,58 +83,25 @@ export function InspectorPanel({
   onRestoreSnapshot,
   onSelectSnapshotDiffPath,
 }: InspectorPanelProps) {
-  // State chung cho tất cả tabs
-  const [confirmState, setConfirmState] = useState<ConfirmDialogState | null>(
-    null
-  );
+  const [confirmState, setConfirmState] = useState<ConfirmDialogState | null>(null);
   const [drawerOpened, setDrawerOpened] = useState(false);
 
-  // Lấy selected snapshot từ history
   const selectedSnapshot =
-    history?.snapshots.find(
-      (snapshot) => snapshot.snapshotId === selectedSnapshotId
-    ) ??
+    history?.snapshots.find((snapshot) => snapshot.snapshotId === selectedSnapshotId) ??
     history?.snapshots.find((snapshot) => snapshot.isActive) ??
     null;
 
-  function openConfirm(state: ConfirmDialogState) {
-    setConfirmState(state);
-  }
-
-  function handleConfirm() {
-    confirmState?.onConfirm();
-    setConfirmState(null);
-  }
-
-  return (
-    <div className={layoutStyles.inspectorContainer}>
-      <Tabs defaultValue="diff" className={layoutStyles.inspectorTabs}>
-        <Tabs.List className={layoutStyles.inspectorTabsList}>
-          <Tabs.Tab value="diff" leftSection={<IconWand size={14} stroke={1.8} />}>
-            Diff
-          </Tabs.Tab>
-          <Tabs.Tab
-            value="history"
-            leftSection={<IconHistory size={14} stroke={1.8} />}
-          >
-            History
-          </Tabs.Tab>
-          <Tabs.Tab
-            value="health"
-            leftSection={<IconDatabaseCog size={14} stroke={1.8} />}
-          >
-            Health
-          </Tabs.Tab>
-          <Tabs.Tab
-            value="reflog"
-            leftSection={<IconPlaylistX size={14} stroke={1.8} />}
-          >
-            Reflog
-          </Tabs.Tab>
-        </Tabs.List>
-
-         {/* Diff Tab */}
-        <Tabs.Panel value="diff" className={layoutStyles.inspectorPanelFill}>
+  const items = useMemo(
+    () => [
+      {
+        key: "diff",
+        label: (
+          <Flex align="center" gap={6}>
+            <IconWand size={14} />
+            <span>Diff</span>
+          </Flex>
+        ),
+        children: (
           <DiffTab
             selectedChange={selectedChange}
             diff={diff}
@@ -149,10 +109,17 @@ export function InspectorPanel({
             canRollback={canRollback}
             loading={loading}
           />
-        </Tabs.Panel>
-
-        {/* History Tab */}
-        <Tabs.Panel value="history" className={layoutStyles.inspectorPanelFill}>
+        ),
+      },
+      {
+        key: "history",
+        label: (
+          <Flex align="center" gap={6}>
+            <IconHistory size={14} />
+            <span>History</span>
+          </Flex>
+        ),
+        children: (
           <HistoryTab
             history={history}
             historyLoading={historyLoading}
@@ -161,10 +128,17 @@ export function InspectorPanel({
             onRefreshHistory={onRefreshHistory}
             onOpenDrawer={() => setDrawerOpened(true)}
           />
-        </Tabs.Panel>
-
-        {/* Health Tab */}
-        <Tabs.Panel value="health" className={layoutStyles.inspectorPanelFill}>
+        ),
+      },
+      {
+        key: "health",
+        label: (
+          <Flex align="center" gap={6}>
+            <IconDatabaseCog size={14} />
+            <span>Health</span>
+          </Flex>
+        ),
+        children: (
           <HealthTab
             lockInfo={lockInfo}
             fsckReport={fsckReport}
@@ -172,17 +146,49 @@ export function InspectorPanel({
             loading={loading}
             onRunFsck={onRunFsck}
             onRunGc={onRunGc}
-            onOpenConfirm={openConfirm}
+            onOpenConfirm={setConfirmState}
           />
-        </Tabs.Panel>
+        ),
+      },
+      {
+        key: "reflog",
+        label: (
+          <Flex align="center" gap={6}>
+            <IconPlaylistX size={14} />
+            <span>Reflog</span>
+          </Flex>
+        ),
+        children: <ReflogTab history={history} />,
+      },
+    ],
+    [
+      canRollback,
+      diff,
+      fsckReport,
+      gcReport,
+      history,
+      historyLoading,
+      loading,
+      lockInfo,
+      onRefreshHistory,
+      onRollback,
+      onRunFsck,
+      onRunGc,
+      onSelectSnapshot,
+      selectedChange,
+      selectedSnapshotId,
+    ],
+  );
 
-        {/* Reflog Tab */}
-        <Tabs.Panel value="reflog" className={layoutStyles.inspectorPanelFill}>
-          <ReflogTab history={history} />
-        </Tabs.Panel>
-      </Tabs>
+  return (
+    <div style={{ height: '100%' }}>
+      <Tabs 
+        defaultActiveKey="diff" 
+        items={items}
+        style={{ height: '100%' }}
+        tabBarStyle={{ marginBottom: 0, padding: '0 16px', background: '#fff' }}
+      />
 
-      {/* Snapshot Drawer */}
       <SnapshotDrawer
         opened={drawerOpened && !!selectedSnapshot}
         onClose={() => setDrawerOpened(false)}
@@ -197,82 +203,46 @@ export function InspectorPanel({
         onDeleteTag={onDeleteTag}
         onSaveNote={onSaveNote}
         onDeleteNote={onDeleteNote}
-        onOpenConfirm={openConfirm}
+        onOpenConfirm={setConfirmState}
       />
 
-      {/* Confirm Dialog */}
       <Modal
-        opened={!!confirmState}
-        onClose={() => setConfirmState(null)}
+        open={Boolean(confirmState)}
+        onCancel={() => setConfirmState(null)}
         title={confirmState?.title ?? "Xác nhận thao tác"}
+        footer={null}
         centered
-        radius="md"
-        size="md"
+        destroyOnHidden
       >
-        <Stack gap="md">
-          <Group gap="sm" align="flex-start">
-            <IconAlertTriangle
-              size={24}
-              stroke={1.8}
-              style={{
-                color: "#f59e0b",
-                flexShrink: 0,
-                marginTop: 2,
+        <Flex vertical gap="middle">
+          <Typography.Text strong>{confirmState?.description}</Typography.Text>
+          <Alert
+            type="warning"
+            showIcon
+            message="Cảnh báo"
+            description={
+              <ul>
+                {(confirmState?.warnings ?? []).map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            }
+          />
+          <Flex justify="end" gap="small">
+            <Button onClick={() => setConfirmState(null)}>Hủy</Button>
+            <Button
+              type="primary"
+              danger={confirmState?.confirmColor === "red"}
+              icon={<IconCheck size={14} />}
+              onClick={() => {
+                confirmState?.onConfirm();
+                setConfirmState(null);
               }}
-            />
-            <Stack gap="xs" style={{ flex: 1 }}>
-              <Text size="sm" fw={600}>
-                {confirmState?.description}
-              </Text>
-              <Text size="sm" c="dimmed">
-                Thao tác này có thể làm thay đổi dữ liệu đang lưu trong session
-                hiện tại.
-              </Text>
-            </Stack>
-          </Group>
-          <div
-            style={{
-              background: "rgba(245, 158, 11, 0.1)",
-              padding: "12px",
-              borderRadius: "6px",
-              borderLeft: "3px solid #f59e0b",
-            }}
-          >
-            <Group gap={6} mb={6}>
-              <IconAlertTriangle
-                size={16}
-                stroke={1.8}
-                style={{ color: "#fbbf24" }}
-              />
-              <Text size="xs" fw={600} c="yellow.4">
-                CẢNH BÁO
-              </Text>
-            </Group>
-            <Text size="xs" c="dimmed">
-              <Text component="span" style={{ whiteSpace: "pre-line" }}>
-                {(confirmState?.warnings ?? [])
-                  .map((warning) => `• ${warning}`)
-                  .join("\n")}
-              </Text>
-            </Text>
-          </div>
-          <Group justify="flex-end">
-            <Button
-              variant="default"
-              onClick={() => setConfirmState(null)}
-              leftSection={<IconX size={16} stroke={1.8} />}
-            >
-              Hủy
-            </Button>
-            <Button
-              color={confirmState?.confirmColor ?? "red"}
-              onClick={handleConfirm}
-              leftSection={<IconCheck size={16} stroke={1.8} />}
             >
               {confirmState?.confirmLabel ?? "Xác nhận"}
             </Button>
-          </Group>
-        </Stack>
+          </Flex>
+        </Flex>
       </Modal>
     </div>
   );

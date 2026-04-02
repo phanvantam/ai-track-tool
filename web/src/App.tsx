@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { notifications } from "@mantine/notifications";
+import { notifications } from "./lib/notify";
 import { removeSession as apiRemoveSession, type SessionState } from "./api";
 
 import {

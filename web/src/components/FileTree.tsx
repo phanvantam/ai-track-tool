@@ -1,11 +1,21 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { ActionIcon, Badge, Button, Group, Modal, Progress, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
-import { IconAlertTriangle, IconCheck, IconInfoCircle, IconRestore, IconX } from "@tabler/icons-react";
-
+import { useMemo, useState } from "react";
+import {
+  Alert,
+  Button,
+  Card,
+  Descriptions,
+  Empty,
+  Flex,
+  Modal,
+  Progress,
+  Space,
+  Tag,
+  Tree,
+  Typography,
+} from "antd";
+import { IconInfoCircle, IconRestore, IconX } from "@tabler/icons-react";
+import type { DataNode } from "antd/es/tree";
 import type { ChangeEntry, SessionState } from "../api";
-import { VirtualFileTree } from "./VirtualFileTree";
-import layoutStyles from "../styles/layout.module.css";
-import treeStyles from "../styles/components/tree.module.css";
 
 interface FileTreeNode {
   name: string;
@@ -15,6 +25,11 @@ interface FileTreeNode {
   children?: FileTreeNode[];
   isFolder: boolean;
   changeCount?: number;
+}
+
+interface TreeNodeData extends DataNode {
+  filePath: string;
+  nodeKind: "file" | "folder";
 }
 
 interface FileTreeProps {
@@ -32,15 +47,9 @@ interface FileTreeProps {
 }
 
 /**
- * FileTree component - Hierarchical file change display
- * Optimized with:
- * - VirtualFileTree: virtual scrolling for 1000+ files
- * - useMemo: memoize buildTree computation
- * - useCallback: memoize event handlers
- * - React.memo: prevent re-render on props change
+ * File tree dùng AntD Tree/Card/Modal.
  */
-
-function FileTreeComponent({
+export function FileTree({
   session,
   changes,
   selectedPath,
@@ -53,301 +62,207 @@ function FileTreeComponent({
   loading,
   rollbackAllProgress,
 }: FileTreeProps) {
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set([""]));
   const [infoOpened, setInfoOpened] = useState(false);
   const [resetConfirmOpened, setResetConfirmOpened] = useState(false);
   const [rollbackAllConfirmOpened, setRollbackAllConfirmOpened] = useState(false);
   const [rollbackFolderConfirmOpened, setRollbackFolderConfirmOpened] = useState(false);
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([""]);
+
   const tree = useMemo(() => buildTree(changes), [changes]);
+  const treeData = useMemo(() => toTreeData(tree), [tree]);
+
   const addedCount = changes.filter((c) => c.type === "added").length;
   const modifiedCount = changes.filter((c) => c.type === "modified").length;
   const deletedCount = changes.filter((c) => c.type === "deleted").length;
   const renamedCount = changes.filter((c) => c.type === "renamed").length;
 
-  // useCallback để optimize folder toggle
-  const toggleFolder = useCallback((path: string) => {
-    setExpandedFolders((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
-      }
-      return next;
-    });
-  }, []);
-
-  function handleResetClick() {
-    setResetConfirmOpened(true);
-  }
-
-  function handleRollbackAllClick() {
-    setRollbackAllConfirmOpened(true);
-  }
-
-  function handleRollbackFolderClick() {
-    setRollbackFolderConfirmOpened(true);
-  }
-
-  function confirmReset() {
-    setResetConfirmOpened(false);
-    onResetSnapshot();
-  }
-
-  function confirmRollbackAll() {
-    setRollbackAllConfirmOpened(false);
-    onRollbackAll();
-  }
-
-  function confirmRollbackFolder() {
-    setRollbackFolderConfirmOpened(false);
-    onRollbackFolder();
-  }
-
   return (
-    <div className={layoutStyles.filetreeContainer}>
-      <div className={layoutStyles.filetreeHeader}>
-        <Group gap="xs" wrap="nowrap">
-          <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-            Thay đổi
-          </Text>
-          <ActionIcon variant="subtle" size="sm" aria-label="Thông tin project" onClick={() => setInfoOpened(true)}>
-            <IconInfoCircle size={16} stroke={1.8} />
-          </ActionIcon>
-        </Group>
-        <Group gap="xs">
-          {addedCount > 0 ? <Badge size="xs" color="green">+{addedCount}</Badge> : null}
-          {modifiedCount > 0 ? <Badge size="xs" color="yellow">~{modifiedCount}</Badge> : null}
-          {deletedCount > 0 ? <Badge size="xs" color="red">-{deletedCount}</Badge> : null}
-          {renamedCount > 0 ? <Badge size="xs" color="blue">→{renamedCount}</Badge> : null}
-        </Group>
+    <Card 
+      title={
+        <Flex justify="space-between" align="center">
+          <span>Thay đổi</span>
+          <Space size={4}>
+            {addedCount > 0 ? <Tag color="green">+{addedCount}</Tag> : null}
+            {modifiedCount > 0 ? <Tag color="gold">~{modifiedCount}</Tag> : null}
+            {deletedCount > 0 ? <Tag color="red">-{deletedCount}</Tag> : null}
+            {renamedCount > 0 ? <Tag color="blue">→{renamedCount}</Tag> : null}
+          </Space>
+        </Flex>
+      }
+      extra={<Button type="text" size="small" icon={<IconInfoCircle size={16} />} onClick={() => setInfoOpened(true)} />}
+      style={{ height: '100%' }}
+      bodyStyle={{ padding: 0, height: 'calc(100% - 57px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+    >
+      <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
+        {treeData.length === 0 ? (
+          <Empty description="Không có thay đổi" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        ) : (
+          <Tree
+            blockNode
+            showLine
+            treeData={treeData}
+            expandedKeys={expandedKeys}
+            selectedKeys={selectedPath ? [selectedPath] : []}
+            onExpand={(keys) => setExpandedKeys(keys)}
+            onSelect={(_, info) => {
+              const node = info.node as unknown as TreeNodeData;
+              onSelect(node.filePath, node.nodeKind);
+            }}
+          />
+        )}
       </div>
 
-      <ScrollArea className={layoutStyles.filetreeScroll} style={{ flex: 1 }}>
-        <VirtualFileTree
-          nodes={tree}
-          selectedPath={selectedPath}
-          selectedPathType={selectedPathType}
-          expandedFolders={expandedFolders}
-          onSelect={onSelect}
-          onToggleFolder={toggleFolder}
-          height={500}
-        />
-      </ScrollArea>
-
-      <div className={layoutStyles.filetreeActions}>
-        <Stack gap="xs">
+      <div style={{ padding: 12, borderTop: '1px solid #f0f0f0', background: '#fafafa' }}>
+        <Flex vertical gap="small">
           {selectedPathType === "folder" && selectedPath ? (
             <Button
-              fullWidth
-              size="sm"
-              variant="light"
-              color="blue"
-              loading={loading}
-              onClick={handleRollbackFolderClick}
+              block
+              size="small"
+              icon={<IconRestore size={16} />}
+              onClick={() => setRollbackFolderConfirmOpened(true)}
               disabled={selectedFolderChangeCount === 0}
-              leftSection={<IconRestore size={16} stroke={1.8} />}
+              loading={loading}
             >
-              Khôi phục thư mục đã chọn
-            </Button>
-          ) : null}
-          <Button 
-            fullWidth 
-            size="sm" 
-            variant="light" 
-            color="green" 
-            loading={loading} 
-            onClick={handleResetClick}
-            leftSection={<IconCheck size={16} stroke={1.8} />}
-          >
-            Áp dụng thay đổi
-          </Button>
-          <Button 
-            fullWidth 
-            size="sm" 
-            variant="light" 
-            color="red" 
-            loading={loading} 
-            onClick={handleRollbackAllClick}
-            leftSection={<IconX size={16} stroke={1.8} />}
-            disabled={changes.length === 0}
-          >
-            Hủy tất cả thay đổi
-          </Button>
-        </Stack>
-      </div>
-
-      <Modal opened={infoOpened} onClose={() => setInfoOpened(false)} title="Thông tin project" centered radius="md" size="lg">
-        <Stack gap="md">
-          <div>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Target Path</Text>
-            <Text size="sm" mt={4}>{session.targetPath}</Text>
-          </div>
-          <div>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Storage Path</Text>
-            <Text size="sm" mt={4}>{session.storagePath}</Text>
-          </div>
-          <div>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Snapshot Files</Text>
-            <Text size="sm" mt={4}>{`${session.storagePath}/snapshots/${session.snapshotId}/files`}</Text>
-          </div>
-          <div>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Snapshot ID</Text>
-            <Text size="sm" mt={4}>{session.snapshotId}</Text>
-          </div>
-          <div>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Watcher Status</Text>
-            <Text size="sm" mt={4}>{session.watchStatus}</Text>
-          </div>
-          <div>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Tổng thay đổi</Text>
-            <Text size="sm" mt={4}>{session.changeCount}</Text>
-          </div>
-          <Group justify="flex-end">
-            <Button variant="default" onClick={() => setInfoOpened(false)} leftSection={<IconX size={16} stroke={1.8} />}>
-              Đóng
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      <Modal opened={resetConfirmOpened} onClose={() => setResetConfirmOpened(false)} title="Xác nhận Áp dụng Thay đổi" centered radius="md" size="md">
-        <Stack gap="md">
-          <Group gap="sm" align="flex-start">
-            <IconAlertTriangle size={24} stroke={1.8} style={{ color: '#22c55e', flexShrink: 0, marginTop: 2 }} />
-            <Stack gap="xs" style={{ flex: 1 }}>
-              <Text size="sm" fw={600}>
-                Bạn có chắc muốn áp dụng tất cả thay đổi hiện tại?
-              </Text>
-              <Text size="sm" c="dimmed">
-                {session.changeCount} thay đổi sẽ trở thành mốc theo dõi mới
-              </Text>
-            </Stack>
-          </Group>
-          <div style={{ background: 'rgba(34, 197, 94, 0.1)', padding: '12px', borderRadius: '6px', borderLeft: '3px solid #22c55e' }}>
-            <Group gap={6} mb={6}>
-              <IconInfoCircle size={16} stroke={1.8} style={{ color: '#4ade80' }} />
-              <Text size="xs" fw={600} c="green.4">
-                ĐIỀU NÀY SẼ XẢY RA
-              </Text>
-            </Group>
-            <Text size="xs" c="dimmed">
-              • Tất cả thay đổi hiện tại sẽ được chấp nhận<br />
-              • Snapshot cũ bị thay thế bằng trạng thái hiện tại<br />
-              • Danh sách thay đổi sẽ về 0<br />
-              • Bạn KHÔNG THỂ khôi phục về trạng thái trước đó
-            </Text>
-          </div>
-          <Group justify="flex-end">
-            <Button variant="default" onClick={() => setResetConfirmOpened(false)} disabled={loading} leftSection={<IconX size={16} stroke={1.8} />}>
-              Hủy
-            </Button>
-            <Button color="green" onClick={confirmReset} loading={loading} leftSection={<IconCheck size={16} stroke={1.8} />}>
-              Áp dụng
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      <Modal opened={rollbackFolderConfirmOpened} onClose={() => setRollbackFolderConfirmOpened(false)} title="Xác nhận Khôi phục Thư mục" centered radius="md" size="md">
-        <Stack gap="md">
-          <Group gap="sm" align="flex-start">
-            <IconAlertTriangle size={24} stroke={1.8} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 2 }} />
-            <Stack gap="xs" style={{ flex: 1 }}>
-              <Text size="sm" fw={600}>
-                Bạn có chắc muốn khôi phục toàn bộ thư mục đã chọn?
-              </Text>
-              <Text size="sm" c="dimmed">
-                Thư mục: <Text component="span" c="white" fw={500}>{selectedPath}</Text>
-              </Text>
-            </Stack>
-          </Group>
-          <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '12px', borderRadius: '6px', borderLeft: '3px solid #f59e0b' }}>
-            <Group gap={6} mb={6}>
-              <IconAlertTriangle size={16} stroke={1.8} style={{ color: '#fbbf24' }} />
-              <Text size="xs" fw={600} c="yellow.4">
-                CẢNH BÁO
-              </Text>
-            </Group>
-            <Text size="xs" c="dimmed">
-              • Tất cả file trong thư mục sẽ bị khôi phục theo snapshot<br />
-              • File mới thêm trong thư mục có thể bị xóa<br />
-              • Các thay đổi hiện tại trong thư mục sẽ mất<br />
-              • Hãy kiểm tra diff trước khi tiếp tục
-            </Text>
-          </div>
-          <Group justify="flex-end">
-            <Button variant="default" onClick={() => setRollbackFolderConfirmOpened(false)} disabled={loading} leftSection={<IconX size={16} stroke={1.8} />}>
-              Hủy
-            </Button>
-            <Button color="red" onClick={confirmRollbackFolder} loading={loading} leftSection={<IconRestore size={16} stroke={1.8} />}>
               Khôi phục thư mục
             </Button>
-          </Group>
-        </Stack>
+          ) : null}
+
+          <Button block size="small" type="primary" onClick={() => setResetConfirmOpened(true)} loading={loading}>
+            Áp dụng thay đổi
+          </Button>
+
+          <Button block size="small" danger onClick={() => setRollbackAllConfirmOpened(true)} loading={loading} disabled={changes.length === 0}>
+            Hủy tất cả
+          </Button>
+        </Flex>
+      </div>
+
+      <Modal open={infoOpened} onCancel={() => setInfoOpened(false)} title="Thông tin project" footer={null} destroyOnHidden>
+        <Descriptions column={1} bordered size="small">
+          <Descriptions.Item label="Target Path">{session.targetPath}</Descriptions.Item>
+          <Descriptions.Item label="Storage Path">{session.storagePath}</Descriptions.Item>
+          <Descriptions.Item label="Snapshot Files">{`${session.storagePath}/snapshots/${session.snapshotId}/files`}</Descriptions.Item>
+          <Descriptions.Item label="Snapshot ID">{session.snapshotId}</Descriptions.Item>
+          <Descriptions.Item label="Watcher Status">{session.watchStatus}</Descriptions.Item>
+          <Descriptions.Item label="Tổng thay đổi">{session.changeCount}</Descriptions.Item>
+        </Descriptions>
       </Modal>
 
-      <Modal opened={rollbackAllConfirmOpened} onClose={() => setRollbackAllConfirmOpened(false)} title="Xác nhận Hủy Tất cả Thay đổi" centered radius="md" size="md">
-        <Stack gap="md">
-          <Group gap="sm" align="flex-start">
-            <IconAlertTriangle size={24} stroke={1.8} style={{ color: '#ef4444', flexShrink: 0, marginTop: 2 }} />
-            <Stack gap="xs" style={{ flex: 1 }}>
-              <Text size="sm" fw={600}>
-                Bạn có chắc muốn hủy tất cả thay đổi?
-              </Text>
-              <Text size="sm" c="dimmed">
-                Tất cả {session.changeCount} file sẽ được khôi phục về phiên bản snapshot
-              </Text>
-            </Stack>
-          </Group>
-          <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '6px', borderLeft: '3px solid #ef4444' }}>
-            <Group gap={6} mb={6}>
-              <IconAlertTriangle size={16} stroke={1.8} style={{ color: '#f87171' }} />
-              <Text size="xs" fw={600} c="red.4">
-                CẢNH BÁO NGHIÊM TRỌNG
-              </Text>
-            </Group>
-            <Text size="xs" c="dimmed">
-              • TẤT CẢ {addedCount + modifiedCount + deletedCount} file thay đổi sẽ bị ghi đè<br />
-              • File added sẽ bị XÓA khỏi project<br />
-              • File modified sẽ về phiên bản cũ<br />
-              • File deleted sẽ được KHÔI PHỤC<br />
-              • Hành động này KHÔNG THỂ hoàn tác<br />
-              • Hãy đảm bảo đã backup code quan trọng
-            </Text>
-          </div>
-          {loading && rollbackAllProgress > 0 ? (
-            <Stack gap={6}>
-              <Group justify="space-between" gap="xs">
-                <Text size="xs" c="dimmed">
-                  Đang khôi phục files...
-                </Text>
-                <Text size="xs" fw={600}>
-                  {rollbackAllProgress}%
-                </Text>
-              </Group>
-              <Progress value={rollbackAllProgress} radius="xl" size="sm" color="red" animated />
-            </Stack>
-          ) : null}
-          <Group justify="flex-end">
-            <Button variant="default" onClick={() => setRollbackAllConfirmOpened(false)} disabled={loading} leftSection={<IconX size={16} stroke={1.8} />}>
-              Hủy
-            </Button>
-            <Button color="red" onClick={confirmRollbackAll} loading={loading} leftSection={<IconRestore size={16} stroke={1.8} />}>
-              Hủy tất cả thay đổi
-            </Button>
-          </Group>
-        </Stack>
+      <Modal
+        open={resetConfirmOpened}
+        onCancel={() => setResetConfirmOpened(false)}
+        onOk={() => {
+          setResetConfirmOpened(false);
+          onResetSnapshot();
+        }}
+        okText="Áp dụng"
+        cancelText="Hủy"
+        confirmLoading={loading}
+        title="Xác nhận áp dụng thay đổi"
+        destroyOnHidden
+      >
+        <Alert
+          type="success"
+          message="Snapshot sẽ được cập nhật"
+          description={`${session.changeCount} thay đổi sẽ trở thành trạng thái theo dõi mới.`}
+          showIcon
+        />
       </Modal>
-    </div>
+
+      <Modal
+        open={rollbackFolderConfirmOpened}
+        onCancel={() => setRollbackFolderConfirmOpened(false)}
+        onOk={() => {
+          setRollbackFolderConfirmOpened(false);
+          onRollbackFolder();
+        }}
+        okText="Khôi phục thư mục"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true }}
+        confirmLoading={loading}
+        title="Xác nhận khôi phục thư mục"
+        destroyOnHidden
+      >
+        <Alert
+          type="warning"
+          message={selectedPath ?? "Thư mục đã chọn"}
+          description="Toàn bộ file trong thư mục sẽ bị khôi phục theo snapshot hiện tại. Hành động này không hoàn tác được."
+          showIcon
+        />
+      </Modal>
+
+      <Modal
+        open={rollbackAllConfirmOpened}
+        onCancel={() => setRollbackAllConfirmOpened(false)}
+        onOk={() => {
+          setRollbackAllConfirmOpened(false);
+          onRollbackAll();
+        }}
+        okText="Hủy tất cả thay đổi"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true }}
+        confirmLoading={loading}
+        title="Xác nhận hủy tất cả thay đổi"
+        destroyOnHidden
+      >
+        <Flex vertical gap="middle">
+          <Alert
+            type="error"
+            message="Toàn bộ thay đổi sẽ mất"
+            description={`Tất cả ${session.changeCount} file sẽ quay về phiên bản snapshot.`}
+            showIcon
+          />
+
+          {loading && rollbackAllProgress > 0 ? (
+            <Progress percent={rollbackAllProgress} status="active" />
+          ) : null}
+        </Flex>
+      </Modal>
+    </Card>
   );
 }
 
-export const FileTree = React.memo(FileTreeComponent);
+function toTreeData(nodes: FileTreeNode[]): TreeNodeData[] {
+  return nodes.map((node) => ({
+    key: node.path,
+    title: (
+      <Flex align="center" gap="small">
+        <Typography.Text ellipsis>
+          {node.name}
+        </Typography.Text>
+        <Tag color={badgeColor(node.type)}>{node.isFolder ? node.changeCount ?? 0 : labelForType(node.type)}</Tag>
+      </Flex>
+    ),
+    children: node.children ? toTreeData(node.children) : undefined,
+    filePath: node.path,
+    nodeKind: node.isFolder ? "folder" : "file",
+    selectable: true,
+  }));
+}
 
+function labelForType(type: ChangeEntry["type"]) {
+  if (type === "added") return "+";
+  if (type === "deleted") return "-";
+  if (type === "renamed") return "→";
+  return "~";
+}
+
+function badgeColor(type: ChangeEntry["type"]) {
+  if (type === "added") return "green";
+  if (type === "deleted") return "red";
+  if (type === "renamed") return "blue";
+  return "gold";
+}
 
 function buildTree(changes: ChangeEntry[]): FileTreeNode[] {
-  const root: FileTreeNode = { name: "", path: "", type: "modified", isBinary: false, isFolder: true, children: [] };
+  const root: FileTreeNode = {
+    name: "",
+    path: "",
+    type: "modified",
+    isBinary: false,
+    isFolder: true,
+    children: [],
+  };
 
   for (const change of changes) {
     const segments = change.path.split("/");
@@ -370,11 +285,10 @@ function buildTree(changes: ChangeEntry[]): FileTreeNode[] {
           changeCount: isFile ? 1 : 0,
         };
         current.children?.push(child);
-      } else if (!isFile) {
-        child.children = child.children ?? [];
       }
 
       if (!isFile) {
+        child.children = child.children ?? [];
         child.changeCount = (child.changeCount ?? 0) + 1;
         child.type = mergeFolderType(child.type, change.type);
       }
@@ -387,13 +301,6 @@ function buildTree(changes: ChangeEntry[]): FileTreeNode[] {
 }
 
 function mergeFolderType(currentType: ChangeEntry["type"], nextType: ChangeEntry["type"]): ChangeEntry["type"] {
-  if (currentType === nextType) {
-    return currentType;
-  }
-
-  if (currentType === "modified" || nextType === "modified") {
-    return "modified";
-  }
-
+  if (currentType === nextType) return currentType;
   return "modified";
 }

@@ -1,5 +1,5 @@
 import { useHotkeys } from "react-hotkeys-hook";
-import { notifications } from "@mantine/notifications";
+import { notifications } from "../lib/notify";
 
 interface KeyboardShortcutsProps {
   onOpenCommandPalette: () => void;

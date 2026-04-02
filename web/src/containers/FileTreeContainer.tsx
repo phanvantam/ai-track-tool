@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { notifications } from "@mantine/notifications";
+import { notifications } from "../lib/notify";
 import {
   resetSnapshot as apiResetSnapshot,
   rollback as apiRollback,

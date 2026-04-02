@@ -7,10 +7,8 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@mantine/core": "^7.17.8",
-    "@mantine/hooks": "^7.17.8",
-    "@mantine/notifications": "^7.17.8",
     "@tabler/icons-react": "^3.41.1",
+    "antd": "^6.3.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-file-icon": "^1.6.0",

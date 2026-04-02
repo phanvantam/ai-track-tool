@@ -1,0 +1,50 @@
+/* Reset */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Diff styling */
+.diff-container {
+  font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  background: #f8f8f8;
+  padding: 12px;
+  overflow: auto;
+  height: 100%;
+}
+
+.diff-line {
+  margin: 0;
+  padding: 2px 8px;
+  white-space: pre;
+  display: block;
+}
+
+.diff-added {
+  background-color: #d4edda;
+}
+
+.diff-removed {
+  background-color: #f8d7da;
+}
+
+.diff-meta {
+  color: #6c757d;
+  background-color: #e9ecef;
+}
+
+.diff-header {
+  color: #495057;
+  font-weight: 600;
+}
+

@@ -1,28 +1,8 @@
-/**
- * SnapshotDrawerMetadataTab - Tab "Tag & note" trong SnapshotDrawer
- * Hiển thị: tags (add/delete), note (save/delete)
- */
-
-import { useState, useEffect } from "react";
-import {
-  ActionIcon,
-  Badge,
-  Button,
-  Group,
-  Stack,
-  Text,
-  TextInput,
-  Textarea,
-} from "@mantine/core";
-import {
-  IconDeviceFloppy,
-  IconTag,
-  IconTrash,
-} from "@tabler/icons-react";
-
+import { useEffect, useState, type ChangeEvent } from "react";
+import { Button, Card, Flex, Input, Tag, Typography } from "antd";
+import { IconDeviceFloppy, IconTag, IconTrash } from "@tabler/icons-react";
 import type { SessionHistoryView } from "../../api";
 import type { ConfirmDialogState } from "./types";
-import cardStyles from "../../styles/components/card.module.css";
 
 interface SnapshotDrawerMetadataTabProps {
   selectedSnapshot: SessionHistoryView["snapshots"][0];
@@ -33,6 +13,9 @@ interface SnapshotDrawerMetadataTabProps {
   onOpenConfirm: (state: ConfirmDialogState) => void;
 }
 
+/**
+ * Tab tag và note bằng AntD.
+ */
 export function SnapshotDrawerMetadataTab({
   selectedSnapshot,
   onCreateTag,
@@ -42,104 +25,73 @@ export function SnapshotDrawerMetadataTab({
   onOpenConfirm,
 }: SnapshotDrawerMetadataTabProps) {
   const [tagInput, setTagInput] = useState("");
-  const [noteDraft, setNoteDraft] = useState(
-    selectedSnapshot?.note?.content ?? ""
-  );
+  const [noteDraft, setNoteDraft] = useState(selectedSnapshot?.note?.content ?? "");
 
-  // Reset state khi snapshot thay đổi
   useEffect(() => {
     setTagInput("");
     setNoteDraft(selectedSnapshot?.note?.content ?? "");
   }, [selectedSnapshot?.snapshotId, selectedSnapshot?.note?.content]);
 
   return (
-    <Stack gap="md">
-      {/* Tags Card */}
-      <div className={cardStyles.inspectorCard}>
-        <Stack gap="sm">
-          <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-            Tags
-          </Text>
-          <Group gap="xs" wrap="wrap">
-            {selectedSnapshot.tags.length === 0 ? (
-              <Text size="xs" c="dimmed">
-                Chưa có tag.
-              </Text>
-            ) : null}
+    <Flex vertical gap="middle">
+      <Card title="Tags">
+        <Flex vertical gap="middle">
+          <Flex gap="small" wrap="wrap">
+            {selectedSnapshot.tags.length === 0 ? <Typography.Text type="secondary">Chưa có tag.</Typography.Text> : null}
             {selectedSnapshot.tags.map((tag) => (
-              <Badge
+              <Tag
                 key={tag}
-                rightSection={
-                  <ActionIcon
-                    size={12}
-                    variant="transparent"
-                    color="blue"
-                    onClick={() =>
-                      onOpenConfirm({
-                        title: "Xác nhận xóa tag",
-                        description: `Tag ${tag} sẽ bị gỡ khỏi mốc đã chọn.`,
-                        warnings: [
-                          "Tag này sẽ biến mất khỏi history UI.",
-                          "Reflog vẫn ghi lại hành động xóa tag.",
-                          "Nếu cần lại, bạn phải tạo tag mới thủ công.",
-                        ],
-                        confirmLabel: "Xóa tag",
-                        confirmColor: "red",
-                        onConfirm: () => onDeleteTag(tag),
-                      })
-                    }
-                  >
-                    <IconTrash size={10} stroke={2} />
-                  </ActionIcon>
-                }
-                size="sm"
-                variant="light"
                 color="blue"
+                closeIcon={<IconTrash size={12} />}
+                onClose={(event) => {
+                  event.preventDefault();
+                  onOpenConfirm({
+                    title: "Xác nhận xóa tag",
+                    description: `Tag ${tag} sẽ bị gỡ khỏi mốc đã chọn.`,
+                    warnings: [
+                      "Tag này sẽ biến mất khỏi history UI.",
+                      "Reflog vẫn ghi lại hành động xóa tag.",
+                      "Nếu cần lại, bạn phải tạo tag mới thủ công.",
+                    ],
+                    confirmLabel: "Xóa tag",
+                    confirmColor: "red",
+                    onConfirm: () => onDeleteTag(tag),
+                  });
+                }}
               >
                 {tag}
-              </Badge>
+              </Tag>
             ))}
-          </Group>
+          </Flex>
 
-          <Group align="flex-end" wrap="nowrap">
-            <TextInput
-              label="Tag mới"
-              placeholder="release-v1"
-              value={tagInput}
-              onChange={(event) => setTagInput(event.currentTarget.value)}
-              className={cardStyles.inspectorGrow}
-            />
-            <Button
-              leftSection={<IconTag size={14} stroke={1.8} />}
-              disabled={!tagInput.trim()}
-              onClick={() =>
-                onCreateTag(selectedSnapshot.snapshotId, tagInput.trim())
-              }
-            >
+          <Flex gap="small" align="end">
+            <div>
+              <Typography.Text type="secondary">Tag mới</Typography.Text>
+              <Input
+                placeholder="release-v1"
+                value={tagInput}
+                onChange={(event: ChangeEvent<HTMLInputElement>) => setTagInput(event.currentTarget.value)}
+              />
+            </div>
+            <Button icon={<IconTag size={14} />} disabled={!tagInput.trim()} onClick={() => onCreateTag(selectedSnapshot.snapshotId, tagInput.trim())}>
               Gắn tag
             </Button>
-          </Group>
-        </Stack>
-      </div>
+          </Flex>
+        </Flex>
+      </Card>
 
-      {/* Note Card */}
-      <div className={cardStyles.inspectorCard}>
-        <Stack gap="sm">
-          <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-            Note
-          </Text>
-          <Textarea
-            label="Ghi chú"
+      <Card title="Note">
+        <Flex vertical gap="middle">
+          <Input.TextArea
             placeholder="Ghi chú cho mốc này"
-            minRows={6}
+            autoSize={{ minRows: 6 }}
             value={noteDraft}
-            onChange={(event) => setNoteDraft(event.currentTarget.value)}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setNoteDraft(event.currentTarget.value)}
           />
-          <Group justify="flex-end">
+          <Flex justify="end" gap="small">
             <Button
-              variant="default"
+              icon={<IconTrash size={14} />}
               disabled={!selectedSnapshot.note}
-              leftSection={<IconTrash size={14} stroke={1.8} />}
               onClick={() =>
                 onOpenConfirm({
                   title: "Xác nhận xóa note",
@@ -157,17 +109,12 @@ export function SnapshotDrawerMetadataTab({
             >
               Xóa note
             </Button>
-            <Button
-              leftSection={<IconDeviceFloppy size={14} stroke={1.8} />}
-              onClick={() =>
-                onSaveNote(selectedSnapshot.snapshotId, noteDraft.trim())
-              }
-            >
+            <Button type="primary" icon={<IconDeviceFloppy size={14} />} onClick={() => onSaveNote(selectedSnapshot.snapshotId, noteDraft.trim())}>
               Lưu note
             </Button>
-          </Group>
-        </Stack>
-      </div>
-    </Stack>
+          </Flex>
+        </Flex>
+      </Card>
+    </Flex>
   );
 }

@@ -1,132 +1,120 @@
+import { Splitter, Tabs } from "antd";
 import { useEffect, useState } from "react";
-import { Group, Panel, Separator } from "react-resizable-panels";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { Tabs } from "@mantine/core";
-import type { Layout } from "react-resizable-panels";
-import styles from "./ResizablePanelLayout.module.css";
 
 interface ResizablePanelLayoutProps {
   fileTree: React.ReactNode;
   inspector: React.ReactNode;
 }
 
+const DESKTOP_KEY = "layout.desktop.split";
+const TABLET_KEY = "layout.tablet.split";
+
 /**
- * ResizablePanelLayout component - Main layout với resizable splitter.
- * Desktop (≥1024px): Horizontal panels (FileTree left, Inspector right)
- * Tablet (640-1024px): Vertical panels (FileTree top, Inspector bottom)
- * Mobile (<640px): Tabs (Files tab / Inspector tab)
- *
- * Panel sizes được lưu vào localStorage để restore khi reload.
+ * Layout chính bằng AntD Splitter/Tabs.
+ * Desktop ngang, tablet dọc, mobile chuyển tab.
  */
-export function ResizablePanelLayout({
-  fileTree,
-  inspector,
-}: ResizablePanelLayoutProps) {
+export function ResizablePanelLayout({ fileTree, inspector }: ResizablePanelLayoutProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isTablet = useMediaQuery("(min-width: 640px) and (max-width: 1023px)");
   const isMobile = useMediaQuery("(max-width: 639px)");
 
-  const [defaultLayout, setDefaultLayout] = useState<Layout>({
-    "file-tree": 25,
-    inspector: 75,
-  });
-  const [activeTab, setActiveTab] = useState<string | null>("files");
+  const [desktopSizes, setDesktopSizes] = useState<[number, number]>([25, 75]);
+  const [tabletSizes, setTabletSizes] = useState<[number, number]>([45, 55]);
+  const [mobileTab, setMobileTab] = useState("files");
 
-  // Load sizes từ localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("panel-layout");
-    if (saved) {
+    const savedDesktop = localStorage.getItem(DESKTOP_KEY);
+    const savedTablet = localStorage.getItem(TABLET_KEY);
+
+    if (savedDesktop) {
       try {
-        const layout = JSON.parse(saved);
-        setDefaultLayout(layout);
+        const parsed = JSON.parse(savedDesktop) as [number, number];
+        if (Array.isArray(parsed) && parsed.length === 2) {
+          setDesktopSizes(parsed);
+        }
       } catch {
-        // Fallback to default
+        // Bỏ qua dữ liệu hỏng.
+      }
+    }
+
+    if (savedTablet) {
+      try {
+        const parsed = JSON.parse(savedTablet) as [number, number];
+        if (Array.isArray(parsed) && parsed.length === 2) {
+          setTabletSizes(parsed);
+        }
+      } catch {
+        // Bỏ qua dữ liệu hỏng.
       }
     }
   }, []);
 
-  // Save sizes vào localStorage
-  const handleLayoutChange = (layout: Layout) => {
-    setDefaultLayout(layout);
-    localStorage.setItem("panel-layout", JSON.stringify(layout));
-  };
-
-  // Desktop: Horizontal layout với resizable panels
-  // Default: show desktop layout nếu media query chưa ready
-  if (isDesktop || (!isTablet && !isMobile)) {
-    return (
-      <div className={styles.container}>
-        <Group
-          orientation="horizontal"
-          onLayoutChange={handleLayoutChange}
-          className={styles.panelGroup}
-          defaultLayout={defaultLayout}
-        >
-          <Panel id="file-tree" defaultSize={25} minSize={15} maxSize={50}>
-            <div className={styles.panelContent}>{fileTree}</div>
-          </Panel>
-
-          <Separator className={styles.resizeHandle} />
-
-          <Panel id="inspector" defaultSize={75} minSize={50}>
-            <div className={styles.panelContent}>{inspector}</div>
-          </Panel>
-        </Group>
-      </div>
-    );
-  }
-
-  // Tablet: Vertical layout
-  if (isTablet) {
-    return (
-      <div className={styles.container}>
-        <Group
-          orientation="vertical"
-          onLayoutChange={handleLayoutChange}
-          className={styles.panelGroup}
-          defaultLayout={{ "file-tree": 50, inspector: 50 }}
-        >
-          <Panel id="file-tree" defaultSize={50} minSize={30}>
-            <div className={styles.panelContent}>{fileTree}</div>
-          </Panel>
-
-          <Separator className={styles.verticalResizeHandle} />
-
-          <Panel id="inspector" defaultSize={50} minSize={30}>
-            <div className={styles.panelContent}>{inspector}</div>
-          </Panel>
-        </Group>
-      </div>
-    );
-  }
-
-  // Mobile: Tabs layout
   if (isMobile) {
     return (
-      <div className={styles.container}>
+      <div style={{ height: '100%' }}>
         <Tabs
-          value={activeTab}
-          onChange={setActiveTab}
-          classNames={{
-            root: styles.tabsRoot,
-            list: styles.tabsList,
-            tab: styles.tab,
-            panel: styles.tabPanel,
+          activeKey={mobileTab}
+          onChange={setMobileTab}
+          style={{ height: '100%' }}
+          items={[
+            {
+              key: "files",
+              label: "Files",
+              children: <div style={{ height: 'calc(100vh - 112px)' }}>{fileTree}</div>,
+            },
+            {
+              key: "inspector",
+              label: "Inspector",
+              children: <div style={{ height: 'calc(100vh - 112px)' }}>{inspector}</div>,
+            },
+          ]}
+        />
+      </div>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <div style={{ height: '100%' }}>
+        <Splitter
+          orientation="vertical"
+          style={{ height: '100%' }}
+          onResizeEnd={(sizes) => {
+            const next = [sizes[0] ?? 45, sizes[1] ?? 55] as [number, number];
+            setTabletSizes(next);
+            localStorage.setItem(TABLET_KEY, JSON.stringify(next));
           }}
         >
-          <Tabs.List>
-            <Tabs.Tab value="files">Files</Tabs.Tab>
-            <Tabs.Tab value="inspector">Inspector</Tabs.Tab>
-          </Tabs.List>
+          <Splitter.Panel min="30%" max="70%" size={`${tabletSizes[0]}%`} defaultSize="45%">
+            <div style={{ height: '100%' }}>{fileTree}</div>
+          </Splitter.Panel>
+          <Splitter.Panel min="30%" size={`${tabletSizes[1]}%`} defaultSize="55%">
+            <div style={{ height: '100%' }}>{inspector}</div>
+          </Splitter.Panel>
+        </Splitter>
+      </div>
+    );
+  }
 
-          <Tabs.Panel value="files">
-            <div className={styles.panelContent}>{fileTree}</div>
-          </Tabs.Panel>
-
-          <Tabs.Panel value="inspector">
-            <div className={styles.panelContent}>{inspector}</div>
-          </Tabs.Panel>
-        </Tabs>
+  if (isDesktop || (!isTablet && !isMobile)) {
+    return (
+      <div style={{ height: '100%' }}>
+        <Splitter
+          style={{ height: '100%' }}
+          onResizeEnd={(sizes) => {
+            const next = [sizes[0] ?? 25, sizes[1] ?? 75] as [number, number];
+            setDesktopSizes(next);
+            localStorage.setItem(DESKTOP_KEY, JSON.stringify(next));
+          }}
+        >
+          <Splitter.Panel min="15%" max="50%" size={`${desktopSizes[0]}%`} defaultSize="25%">
+            <div style={{ height: '100%' }}>{fileTree}</div>
+          </Splitter.Panel>
+          <Splitter.Panel min="50%" size={`${desktopSizes[1]}%`} defaultSize="75%">
+            <div style={{ height: '100%' }}>{inspector}</div>
+          </Splitter.Panel>
+        </Splitter>
       </div>
     );
   }
