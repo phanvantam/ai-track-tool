@@ -132,6 +132,14 @@
 - [x] Rà soát dependency mới có thực sự cần thiết.
 - [x] Ghi rõ điểm còn `unknown` nếu chưa xử lý được.
 
+## 13. Hỗ trợ tính năng mới
+
+- [x] Thêm API web cho `history`, `diff-snapshots`, `lock`, `fsck`, `gc`, `tag`, `note`.
+- [x] Bổ sung panel phải với tabs `Diff`, `History`, `Health`, `Reflog`.
+- [x] Hiển thị snapshot graph, history list, reflog stats và lock status.
+- [x] Cho UI chạy `fsck`, `gc`, gắn tag, ghi note và so sánh snapshot.
+- [x] Chạy lại build backend, build frontend và test web sau khi nâng cấp.
+
 ## Execution Log
 
 | Step | Status | Notes | Timestamp |
@@ -232,3 +240,7 @@
 | 12.1 | [x]    | Đã rà soát diff | 2026-04-01 21:44 |
 | 12.2 | [x]    | Dependency mới chỉ gồm React, Vite, Mantine | 2026-04-01 21:44 |
 | 12.3 | [x]    | Điểm còn thiếu là manual browser verify | 2026-04-01 21:44 |
+| 13.1 | [x]    | Bổ sung API web cho history, reflog, fsck, gc, tag, note, diff snapshots | 2026-04-02 19:18 |
+| 13.2 | [x]    | UI có tabs Diff, History, Health, Reflog cho session active | 2026-04-02 19:18 |
+| 13.3 | [x]    | Có thao tác tag, note, fsck, gc và compare snapshot trên web | 2026-04-02 19:18 |
+| 13.4 | [x]    | `npm run build:all` và `npm test` pass sau nâng cấp UI | 2026-04-02 19:18 |

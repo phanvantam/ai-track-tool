@@ -2,11 +2,18 @@ import { randomUUID } from "node:crypto";
 
 import { readAppConfig, writeAppConfig } from "../core/config.js";
 import { getChanges } from "../core/compare.js";
-import { rollbackFile } from "../core/rollback.js";
+import { countDiffLines, renderSnapshotDiffForPath } from "../core/diff.js";
+import { runFsck } from "../core/fsck.js";
+import { runGarbageCollection, type GarbageCollectionReport } from "../core/gc.js";
+import { readLockInfo } from "../core/lock.js";
+import { getReflogStats, readReflog } from "../core/reflog.js";
+import { rollbackFile, rollbackToSnapshot } from "../core/rollback.js";
+import { buildSnapshotChain, diffSnapshotManifests, getSnapshotManifestById, listSnapshotManifests, type SnapshotDiffEntry, renderSnapshotGraph } from "../core/snapshot-chain.js";
 import { ensureSnapshot, normalizeTargetPath, resetSnapshot } from "../core/snapshot.js";
+import { addSnapshotAnnotation, createSnapshotTag, deleteSnapshotAnnotation, deleteSnapshotTag, listSnapshotAnnotations, listSnapshotTags } from "../core/snapshot-tags.js";
 import { readState } from "../core/state.js";
 import { createWatcher } from "../core/watch.js";
-import type { ChangeEntry, SessionState, WatchController, WatchStatus } from "../types.js";
+import type { ChangeEntry, FSCKReport, LockInfo, SessionHistoryEntry, SessionHistoryView, SessionState, SnapshotAnnotation, SnapshotTag, WatchController } from "../types.js";
 
 interface SessionManagerOptions {
   onSessionChange?: (session: SessionState) => void;
@@ -80,6 +87,12 @@ export class SessionManager {
     return session.state;
   }
 
+  public async restoreSnapshot(sessionId: string, snapshotId: string): Promise<SessionState> {
+    const session = this.requireSession(sessionId);
+    await session.restoreSnapshot(snapshotId);
+    return session.state;
+  }
+
   public async pauseSession(sessionId: string): Promise<SessionState> {
     const session = this.requireSession(sessionId);
     session.pause();
@@ -97,6 +110,54 @@ export class SessionManager {
     session.stop();
     this.sessions.delete(sessionId);
     await this.persistProjects();
+  }
+
+  public async getHistory(sessionId: string): Promise<SessionHistoryView> {
+    return this.requireSession(sessionId).getHistory();
+  }
+
+  public async getLockInfo(sessionId: string): Promise<LockInfo | null> {
+    return this.requireSession(sessionId).getLockInfo();
+  }
+
+  public async getSnapshotDiff(sessionId: string, fromSnapshotId: string, toSnapshotId: string): Promise<SnapshotDiffEntry[]> {
+    return this.requireSession(sessionId).getSnapshotDiff(fromSnapshotId, toSnapshotId);
+  }
+
+  public async getSnapshotFileDiff(sessionId: string, fromSnapshotId: string, toSnapshotId: string, relativePath: string): Promise<string> {
+    return this.requireSession(sessionId).getSnapshotFileDiff(fromSnapshotId, toSnapshotId, relativePath);
+  }
+
+  public async runFsck(sessionId: string, repair = false): Promise<FSCKReport> {
+    return this.requireSession(sessionId).runFsck(repair);
+  }
+
+  public async runGarbageCollection(sessionId: string, dryRun = false): Promise<GarbageCollectionReport> {
+    return this.requireSession(sessionId).runGarbageCollection(dryRun);
+  }
+
+  public async createTag(sessionId: string, snapshotId: string, tagName: string): Promise<SessionHistoryView> {
+    const session = this.requireSession(sessionId);
+    await session.createTag(snapshotId, tagName);
+    return session.getHistory();
+  }
+
+  public async deleteTag(sessionId: string, tagName: string): Promise<SessionHistoryView> {
+    const session = this.requireSession(sessionId);
+    await session.deleteTag(tagName);
+    return session.getHistory();
+  }
+
+  public async saveNote(sessionId: string, snapshotId: string, content: string): Promise<SessionHistoryView> {
+    const session = this.requireSession(sessionId);
+    await session.saveNote(snapshotId, content);
+    return session.getHistory();
+  }
+
+  public async deleteNote(sessionId: string, snapshotId: string): Promise<SessionHistoryView> {
+    const session = this.requireSession(sessionId);
+    await session.deleteNote(snapshotId);
+    return session.getHistory();
   }
 
   public stopAll(): void {
@@ -205,6 +266,93 @@ class ManagedSession {
     await this.refresh();
   }
 
+  public async restoreSnapshot(snapshotId: string): Promise<void> {
+    const state = await rollbackToSnapshot(this.targetPath, snapshotId);
+    this.state.storagePath = state.storagePath;
+    this.state.snapshotId = state.activeSnapshotId;
+    await this.refresh();
+  }
+
+  public async getHistory(): Promise<SessionHistoryView> {
+    const trackedState = await readState(this.targetPath);
+    const storagePath = trackedState.storagePath;
+    const manifests = await listSnapshotManifests(storagePath);
+    const tags = await listSnapshotTags(storagePath);
+    const notes = await listSnapshotAnnotations(storagePath);
+    const chain = await buildSnapshotChain(storagePath);
+
+    return {
+      graph: renderSnapshotGraph(chain, trackedState.activeSnapshotId),
+      snapshots: buildHistoryEntries(manifests, trackedState.activeSnapshotId, tags, notes),
+      reflog: await readReflog(storagePath, { limit: 30 }),
+      reflogStats: await getReflogStats(storagePath),
+    };
+  }
+
+  public async getLockInfo(): Promise<LockInfo | null> {
+    return readLockInfo((await readState(this.targetPath)).storagePath);
+  }
+
+  public async getSnapshotDiff(fromSnapshotId: string, toSnapshotId: string): Promise<SnapshotDiffEntry[]> {
+    const storagePath = (await readState(this.targetPath)).storagePath;
+    const fromManifest = await getSnapshotManifestById(storagePath, fromSnapshotId);
+    const toManifest = await getSnapshotManifestById(storagePath, toSnapshotId);
+    const manifestDiffs = diffSnapshotManifests(fromManifest, toManifest);
+
+    return Promise.all(manifestDiffs.map(async (entry) => {
+      const diffText = await renderSnapshotDiffForPath(storagePath, fromSnapshotId, toSnapshotId, entry.path);
+      return {
+        ...entry,
+        ...countDiffLines(diffText),
+      };
+    }));
+  }
+
+  public async getSnapshotFileDiff(fromSnapshotId: string, toSnapshotId: string, relativePath: string): Promise<string> {
+    const storagePath = (await readState(this.targetPath)).storagePath;
+    return renderSnapshotDiffForPath(storagePath, fromSnapshotId, toSnapshotId, relativePath);
+  }
+
+  public async runFsck(repair = false): Promise<FSCKReport> {
+    const report = await runFsck(this.targetPath, { repair });
+
+    if (repair) {
+      await this.refresh();
+    }
+
+    return report;
+  }
+
+  public async runGarbageCollection(dryRun = false): Promise<GarbageCollectionReport> {
+    const report = await runGarbageCollection(this.targetPath, { dryRun });
+
+    if (!dryRun) {
+      await this.refresh();
+    }
+
+    return report;
+  }
+
+  public async createTag(snapshotId: string, tagName: string): Promise<void> {
+    await createSnapshotTag((await readState(this.targetPath)).storagePath, snapshotId, tagName, process.env.USER ?? "system");
+    this.emit();
+  }
+
+  public async deleteTag(tagName: string): Promise<void> {
+    await deleteSnapshotTag((await readState(this.targetPath)).storagePath, tagName, process.env.USER ?? "system");
+    this.emit();
+  }
+
+  public async saveNote(snapshotId: string, content: string): Promise<void> {
+    await addSnapshotAnnotation((await readState(this.targetPath)).storagePath, snapshotId, content, process.env.USER ?? "system");
+    this.emit();
+  }
+
+  public async deleteNote(snapshotId: string): Promise<void> {
+    await deleteSnapshotAnnotation((await readState(this.targetPath)).storagePath, snapshotId, process.env.USER ?? "system");
+    this.emit();
+  }
+
   public stop(): void {
     this.watcher?.stop();
     this.watcher = null;
@@ -242,4 +390,31 @@ class ManagedSession {
   private emit(): void {
     this.onChange(this.state);
   }
+}
+
+function buildHistoryEntries(
+  manifests: Array<{ snapshotId: string; parentSnapshotId?: string | null; createdAt: string; summary?: string; files: Array<unknown> }>,
+  activeSnapshotId: string,
+  tags: SnapshotTag[],
+  notes: SnapshotAnnotation[],
+): SessionHistoryEntry[] {
+  const tagsBySnapshot = new Map<string, string[]>();
+  const notesBySnapshot = new Map(notes.map((note) => [note.snapshotId, note]));
+
+  for (const tag of tags) {
+    const existing = tagsBySnapshot.get(tag.snapshotId) ?? [];
+    existing.push(tag.name);
+    tagsBySnapshot.set(tag.snapshotId, existing.sort((left, right) => left.localeCompare(right)));
+  }
+
+  return manifests.map((manifest) => ({
+    snapshotId: manifest.snapshotId,
+    parentSnapshotId: manifest.parentSnapshotId ?? null,
+    createdAt: manifest.createdAt,
+    summary: manifest.summary,
+    fileCount: manifest.files.length,
+    isActive: manifest.snapshotId === activeSnapshotId,
+    tags: tagsBySnapshot.get(manifest.snapshotId) ?? [],
+    note: notesBySnapshot.get(manifest.snapshotId) ?? null,
+  }));
 }

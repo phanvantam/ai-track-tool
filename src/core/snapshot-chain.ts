@@ -8,6 +8,9 @@ import { readManifest } from "./state.js";
 export interface SnapshotDiffEntry {
   path: string;
   type: "added" | "modified" | "deleted";
+  insertions?: number;
+  deletions?: number;
+  changeCount?: number;
 }
 
 export async function listSnapshotManifests(storagePath: string): Promise<SnapshotManifest[]> {

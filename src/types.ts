@@ -327,6 +327,29 @@ export interface SessionState extends SessionSummary {
   changes: ChangeEntry[];
 }
 
+export interface SessionHistoryEntry {
+  snapshotId: string;
+  parentSnapshotId: string | null;
+  createdAt: string;
+  summary?: string;
+  fileCount: number;
+  isActive: boolean;
+  tags: string[];
+  note: SnapshotAnnotation | null;
+}
+
+export interface SessionHistoryView {
+  graph: string;
+  snapshots: SessionHistoryEntry[];
+  reflog: ReflogEntry[];
+  reflogStats: {
+    totalEntries: number;
+    actionCounts: Record<string, number>;
+    oldestEntry?: ReflogEntry;
+    newestEntry?: ReflogEntry;
+  };
+}
+
 export interface WebSession {
   summary: SessionSummary;
   stop: () => void;

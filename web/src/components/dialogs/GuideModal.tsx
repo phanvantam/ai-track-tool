@@ -108,14 +108,72 @@ export function GuideModal({ isOpen, onClose }: GuideModalProps) {
           <Text fw={600} size="sm">
             Phím Tắt
           </Text>
-          <Group justify="space-between" gap="md">
-            <Text size="xs">
-              <Badge size="sm" variant="light">
-                Ctrl+?
-              </Badge>{" "}
-              Mở hướng dẫn
-            </Text>
-          </Group>
+          <Stack gap="xs">
+            <Group justify="space-between" gap="md">
+              <Text size="xs">
+                <Badge size="sm" variant="light">
+                  Ctrl+Shift+/
+                </Badge>{" "}
+                Mở hướng dẫn
+              </Text>
+            </Group>
+            <Group justify="space-between" gap="md">
+              <Text size="xs">
+                <Badge size="sm" variant="light">
+                  Ctrl+K
+                </Badge>{" "}
+                Mở Command Palette
+              </Text>
+            </Group>
+            <Group justify="space-between" gap="md">
+              <Text size="xs">
+                <Badge size="sm" variant="light">
+                  Ctrl+S
+                </Badge>{" "}
+                Lưu cấu hình
+              </Text>
+            </Group>
+            <Group justify="space-between" gap="md">
+              <Text size="xs">
+                <Badge size="sm" variant="light">
+                  Ctrl+R
+                </Badge>{" "}
+                Làm mới session
+              </Text>
+            </Group>
+            <Group justify="space-between" gap="md">
+              <Text size="xs">
+                <Badge size="sm" variant="light">
+                  Tab
+                </Badge>{" "}
+                Điều hướng file tree
+              </Text>
+            </Group>
+            <Group justify="space-between" gap="md">
+              <Text size="xs">
+                <Badge size="sm" variant="light">
+                  Enter
+                </Badge>{" "}
+                Chọn file / item
+              </Text>
+            </Group>
+            <Group justify="space-between" gap="md">
+              <Text size="xs">
+                <Badge size="sm" variant="light">
+                  Esc
+                </Badge>{" "}
+                Đóng modals / palettes
+              </Text>
+            </Group>
+            <Group justify="space-between" gap="md">
+              <Text size="xs">
+                <Badge size="sm" variant="light">
+                  Delete
+                </Badge>{" "}
+                Xóa selected item
+              </Text>
+            </Group>
+          </Stack>
         </Stack>
       </Stack>
     </Modal>

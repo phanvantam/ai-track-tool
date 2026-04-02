@@ -8,6 +8,7 @@ import {
   useDiffManager,
   useConfigManager,
   useConfirmDialog,
+  useCommandPalette,
 } from "./hooks";
 import {
   SessionContainer,
@@ -21,10 +22,13 @@ import {
   SettingsModal,
   GuideModal,
 } from "./components/dialogs";
+import { CommandPalette } from "./components/CommandPalette";
+import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 
 /**
  * App component - Main orchestrator.
  * Tải hooks, quản lý modal states, render layout containers.
+ * Tích hợp CommandPalette + KeyboardShortcuts.
  */
 export default function App() {
   // Custom hooks quản lý business logic
@@ -33,6 +37,9 @@ export default function App() {
   const diffManager = useDiffManager();
   const configManager = useConfigManager();
   const confirmDialog = useConfirmDialog();
+
+  // Command palette state
+  const commandPalette = useCommandPalette(sessionManager.sessions);
 
   // Modal states
   const [addProjectOpened, setAddProjectOpened] = useState(false);
@@ -233,6 +240,35 @@ export default function App() {
             (await confirmDialog.confirmState.onConfirm());
         }}
         onCancel={() => confirmDialog.closeConfirm()}
+      />
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={commandPalette.isOpen}
+        onClose={() => commandPalette.setIsOpen(false)}
+        searchQuery={commandPalette.searchQuery}
+        onSearchChange={commandPalette.setSearchQuery}
+        results={commandPalette.results}
+        selectedIndex={commandPalette.selectedIndex}
+      />
+
+      {/* Keyboard Shortcuts */}
+      <KeyboardShortcuts
+        onOpenCommandPalette={() => commandPalette.setIsOpen(true)}
+        onOpenGuide={() => setGuideOpened(true)}
+        onSaveConfig={() => {
+          if (configManager.config) {
+            void configManager.saveConfig(configManager.config.config.storageDir);
+          }
+        }}
+        onRefreshSession={async () => {
+          if (activeSession) {
+            await sessionManager.loadSessions();
+          }
+        }}
+        onDeleteSelected={() => {
+          // TODO: Implement delete selected item
+        }}
       />
     </>
   );

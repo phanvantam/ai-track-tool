@@ -68,4 +68,10 @@
   --z-dropdown: 100;
   --z-modal: 1000;
   --z-notification: 1100;
+
+  /* Breakpoints */
+  --breakpoint-xs: 0;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 1024px;
+  --breakpoint-lg: 1280px;
 }

@@ -14,7 +14,8 @@ npm run dev -- web
 - Không cần truyền `--path`, thêm project trực tiếp trên giao diện.
 - Web UI hỗ trợ nhiều project trong cùng một phiên.
 - Web UI tự làm mới khi file thay đổi qua SSE realtime.
-- Web UI cho phép rollback và reset baseline.
+- Web UI cho phép rollback, tạo mốc theo dõi mới, xem history, reflog, lock, FSCK, GC.
+- Web UI hỗ trợ gắn tag, note và so sánh snapshot ngay trên giao diện.
 
 ## Giao diện web
 
@@ -22,7 +23,7 @@ Giao diện quản trị hiện đại, tối giản:
 
 - **Sidebar trái**: danh sách projects, trạng thái watcher, form thêm project mới.
 - **Cột giữa**: cây thư mục file thay đổi, phân loại folder, badge loại thay đổi (+, ~, -).
-- **Cột phải**: diff viewer với syntax highlighting, nút copy.
+- **Cột phải**: tabs cho diff, history, health, reflog.
 - Hỗ trợ dark theme, font Inter + JetBrains Mono.
 
 ## Lệnh khác

@@ -87,6 +87,59 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       return;
     }
 
+    if (request.method === "GET" && requestUrl.pathname === "/api/history") {
+      const sessionId = requestUrl.searchParams.get("sessionId");
+
+      if (!sessionId) {
+        throw new Error("Thiếu sessionId");
+      }
+
+      writeJson(response, 200, await options.sessionManager.getHistory(sessionId));
+      return;
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/lock") {
+      const sessionId = requestUrl.searchParams.get("sessionId");
+
+      if (!sessionId) {
+        throw new Error("Thiếu sessionId");
+      }
+
+      writeJson(response, 200, { lock: await options.sessionManager.getLockInfo(sessionId) });
+      return;
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/diff-snapshots") {
+      const sessionId = requestUrl.searchParams.get("sessionId");
+      const fromSnapshotId = requestUrl.searchParams.get("from");
+      const toSnapshotId = requestUrl.searchParams.get("to");
+
+      if (!sessionId || !fromSnapshotId || !toSnapshotId) {
+        throw new Error("Thiếu sessionId, from hoặc to");
+      }
+
+      writeJson(response, 200, {
+        diffs: await options.sessionManager.getSnapshotDiff(sessionId, fromSnapshotId, toSnapshotId),
+      });
+      return;
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/diff-snapshot-file") {
+      const sessionId = requestUrl.searchParams.get("sessionId");
+      const fromSnapshotId = requestUrl.searchParams.get("from");
+      const toSnapshotId = requestUrl.searchParams.get("to");
+      const relativePath = requestUrl.searchParams.get("path");
+
+      if (!sessionId || !fromSnapshotId || !toSnapshotId || !relativePath) {
+        throw new Error("Thiếu sessionId, from, to hoặc path");
+      }
+
+      writeJson(response, 200, {
+        diff: await options.sessionManager.getSnapshotFileDiff(sessionId, fromSnapshotId, toSnapshotId, relativePath),
+      });
+      return;
+    }
+
     if (request.method === "GET" && requestUrl.pathname === "/api/diff") {
       const sessionId = requestUrl.searchParams.get("sessionId");
       const relativePath = requestUrl.searchParams.get("path");
@@ -113,6 +166,84 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       return;
     }
 
+    if (request.method === "POST" && requestUrl.pathname === "/api/fsck") {
+      const body = (await readJsonBody(request)) as { sessionId?: string; repair?: boolean } | null;
+
+      if (!body?.sessionId) {
+        throw new Error("Thiếu sessionId");
+      }
+
+      writeJson(response, 200, {
+        report: await options.sessionManager.runFsck(body.sessionId, body.repair ?? false),
+      });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/gc") {
+      const body = (await readJsonBody(request)) as { sessionId?: string; dryRun?: boolean } | null;
+
+      if (!body?.sessionId) {
+        throw new Error("Thiếu sessionId");
+      }
+
+      writeJson(response, 200, {
+        report: await options.sessionManager.runGarbageCollection(body.sessionId, body.dryRun ?? false),
+      });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/tag") {
+      const body = (await readJsonBody(request)) as { sessionId?: string; snapshotId?: string; name?: string } | null;
+
+      if (!body?.sessionId || !body.snapshotId || !body.name) {
+        throw new Error("Thiếu sessionId, snapshotId hoặc name");
+      }
+
+      writeJson(response, 200, {
+        history: await options.sessionManager.createTag(body.sessionId, body.snapshotId, body.name),
+      });
+      return;
+    }
+
+    if (request.method === "DELETE" && requestUrl.pathname === "/api/tag") {
+      const body = (await readJsonBody(request)) as { sessionId?: string; name?: string } | null;
+
+      if (!body?.sessionId || !body.name) {
+        throw new Error("Thiếu sessionId hoặc name");
+      }
+
+      writeJson(response, 200, {
+        history: await options.sessionManager.deleteTag(body.sessionId, body.name),
+      });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/note") {
+      const body = (await readJsonBody(request)) as { sessionId?: string; snapshotId?: string; content?: string } | null;
+
+      if (!body?.sessionId || !body.snapshotId) {
+        throw new Error("Thiếu sessionId hoặc snapshotId");
+      }
+
+      writeJson(response, 200, {
+        history: await options.sessionManager.saveNote(body.sessionId, body.snapshotId, body.content ?? ""),
+      });
+      return;
+    }
+
+    if (request.method === "DELETE" && requestUrl.pathname === "/api/note") {
+      const body = (await readJsonBody(request)) as { sessionId?: string; snapshotId?: string } | null;
+
+      if (!body?.sessionId || !body.snapshotId) {
+        throw new Error("Thiếu sessionId hoặc snapshotId");
+      }
+
+      writeJson(response, 200, {
+        history: await options.sessionManager.deleteNote(body.sessionId, body.snapshotId),
+      });
+      return;
+    }
+
     if (request.method === "POST" && requestUrl.pathname === "/api/reset-snapshot") {
       const body = (await readJsonBody(request)) as { sessionId?: string } | null;
 
@@ -121,6 +252,18 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       }
 
       const session = await options.sessionManager.resetSnapshot(body.sessionId);
+      writeJson(response, 200, { session });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/restore-snapshot") {
+      const body = (await readJsonBody(request)) as { sessionId?: string; snapshotId?: string } | null;
+
+      if (!body?.sessionId || !body.snapshotId) {
+        throw new Error("Thiếu sessionId hoặc snapshotId");
+      }
+
+      const session = await options.sessionManager.restoreSnapshot(body.sessionId, body.snapshotId);
       writeJson(response, 200, { session });
       return;
     }
@@ -183,6 +326,13 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       options.sseHub.addClient(response);
       request.on("close", () => {
         options.sseHub.removeClient(response);
+      });
+      return;
+    }
+
+    if (requestUrl.pathname.startsWith("/api/")) {
+      writeJson(response, 404, {
+        error: `Không tìm thấy API route: ${requestUrl.pathname}. Có thể web server đang chạy phiên bản cũ.`,
       });
       return;
     }
