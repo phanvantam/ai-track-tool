@@ -1,4 +1,4 @@
-import { Button, Flex, Popconfirm, Select, Space, Tooltip } from "antd";
+import { Button, Flex, Select, Tooltip } from "antd";
 import {
   IconFolderPlus,
   IconPlayerPause,
@@ -24,6 +24,8 @@ interface ProjectToolbarProps {
 
 /**
  * Thanh công cụ project bằng AntD.
+ * Tất cả hành động nguy hiểm (pause, resume, xóa) chỉ gọi callback —
+ * confirm dialog được quản lý bên ngoài (App level).
  */
 export function ProjectToolbar({
   sessions,
@@ -91,16 +93,10 @@ export function ProjectToolbar({
 
         {activeSession && (
           <>
-            <Popconfirm
-              title={isWatching ? "Dừng theo dõi?" : "Tiếp tục theo dõi?"}
-              description={isWatching ? "Hệ thống sẽ không tự động nhận diện thay đổi file nữa." : "Hệ thống sẽ bắt đầu theo dõi thay đổi file realtime."}
-              onConfirm={isWatching ? onPause : onResume}
-              okText="Đồng ý"
-              cancelText="Hủy"
-              placement="bottomRight"
-            >
+            <Tooltip title={isWatching ? "Dừng theo dõi" : "Tiếp tục theo dõi"}>
               <Button
                 icon={isWatching ? <IconPlayerPause size={16} /> : <IconPlayerPlay size={16} />}
+                onClick={isWatching ? onPause : onResume}
                 style={{ 
                   color: isWatching ? 'var(--color-warning)' : 'var(--color-success)',
                   borderColor: isWatching ? 'var(--color-warning)' : 'var(--color-success)'
@@ -109,26 +105,19 @@ export function ProjectToolbar({
               >
                 {isWatching ? "Dừng" : "Chạy"}
               </Button>
-            </Popconfirm>
+            </Tooltip>
 
-            <Popconfirm
-              title="Xóa project khỏi danh sách?"
-              description="Hành động này chỉ xóa khỏi UI, không xóa dữ liệu .ai-track của bạn."
-              onConfirm={onRemove}
-              okText="Xóa"
-              cancelText="Hủy"
-              okButtonProps={{ danger: true }}
-              placement="bottomRight"
-            >
+            <Tooltip title="Xóa project và dữ liệu">
               <Button
                 danger
                 type="dashed"
                 icon={<IconTrash size={16} />}
+                onClick={onRemove}
                 className="hover-lift"
               >
                 Xóa
               </Button>
-            </Popconfirm>
+            </Tooltip>
           </>
         )}
       </Flex>

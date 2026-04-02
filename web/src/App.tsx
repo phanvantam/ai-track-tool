@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { notifications } from "./lib/notify";
 import { 
+  pauseSession as apiPauseSession,
+  resumeSession as apiResumeSession,
   removeSession as apiRemoveSession, 
   runFsck as apiRunFsck,
   runGarbageCollection as apiRunGarbageCollection,
@@ -52,7 +54,6 @@ export default function App() {
   const [guideOpened, setGuideOpened] = useState(false);
   const [addProgress, setAddProgress] = useState(12);
   const [addingSession, setAddingSession] = useState(false);
-  const [removeConfirmOpened, setRemoveConfirmOpened] = useState(false);
   const [fsckReport, setFsckReport] = useState<any>(null);
   const [gcReport, setGcReport] = useState<any>(null);
 
@@ -135,36 +136,78 @@ export default function App() {
     }
   }
 
-  // Handle remove session
-  async function handleConfirmRemove() {
+  // Xác nhận dừng theo dõi
+  function openPauseConfirm() {
     if (!activeSession) return;
-    confirmDialog.setLoading(true);
-    try {
-      await apiRemoveSession(activeSession.id);
-      await sessionManager.loadSessions();
-      notifications.show({
-        color: "green",
-        message: "Đã xóa project.",
-      });
-      setRemoveConfirmOpened(false);
-      confirmDialog.closeConfirm();
-    } catch (error) {
-      notifications.show({
-        color: "red",
-        message: error instanceof Error ? error.message : "Lỗi xóa project.",
-      });
-    } finally {
-      confirmDialog.setLoading(false);
-    }
+    confirmDialog.openConfirm(
+      "Dừng theo dõi?",
+      "Hệ thống sẽ không tự động nhận diện thay đổi file nữa.",
+      async () => {
+        confirmDialog.setLoading(true);
+        try {
+          await apiPauseSession(activeSession.id);
+          await sessionManager.loadSessions();
+          notifications.show({ color: "green", message: "Đã dừng theo dõi." });
+          confirmDialog.closeConfirm();
+        } catch (error) {
+          notifications.show({
+            color: "red",
+            message: error instanceof Error ? error.message : "Lỗi dừng theo dõi.",
+          });
+        } finally {
+          confirmDialog.setLoading(false);
+        }
+      },
+    );
   }
 
+  // Xác nhận tiếp tục theo dõi
+  function openResumeConfirm() {
+    if (!activeSession) return;
+    confirmDialog.openConfirm(
+      "Tiếp tục theo dõi?",
+      "Hệ thống sẽ bắt đầu theo dõi thay đổi file realtime.",
+      async () => {
+        confirmDialog.setLoading(true);
+        try {
+          await apiResumeSession(activeSession.id);
+          await sessionManager.loadSessions();
+          notifications.show({ color: "green", message: "Đã tiếp tục theo dõi." });
+          confirmDialog.closeConfirm();
+        } catch (error) {
+          notifications.show({
+            color: "red",
+            message: error instanceof Error ? error.message : "Lỗi tiếp tục theo dõi.",
+          });
+        } finally {
+          confirmDialog.setLoading(false);
+        }
+      },
+    );
+  }
+
+  // Xác nhận xóa project
   function openRemoveConfirm() {
     if (!activeSession) return;
-    setRemoveConfirmOpened(true);
     confirmDialog.openConfirm(
-      "Xác nhận Xóa Project",
-      `Bạn có chắc muốn xóa project: ${activeSession.targetPath}?`,
-      handleConfirmRemove,
+      "Xác nhận Xóa Project và Dữ liệu",
+      `Bạn có chắc muốn xóa project "${activeSession.targetPath}" cùng toàn bộ dữ liệu .ai-track? Không thể hoàn tác.`,
+      async () => {
+        confirmDialog.setLoading(true);
+        try {
+          await apiRemoveSession(activeSession.id);
+          await sessionManager.loadSessions();
+          notifications.show({ color: "green", message: "Đã xóa project." });
+          confirmDialog.closeConfirm();
+        } catch (error) {
+          notifications.show({
+            color: "red",
+            message: error instanceof Error ? error.message : "Lỗi xóa project.",
+          });
+        } finally {
+          confirmDialog.setLoading(false);
+        }
+      },
     );
   }
 
@@ -185,6 +228,8 @@ export default function App() {
             onSwitchSession={sessionManager.switchSession}
             onAddProject={() => setAddProjectOpened(true)}
             onSettings={() => setSettingsOpened(true)}
+            onRequestPause={openPauseConfirm}
+            onRequestResume={openResumeConfirm}
             onRemoveSession={openRemoveConfirm}
           />
         }

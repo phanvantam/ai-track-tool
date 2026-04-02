@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { rm } from "node:fs/promises";
 
 import { readAppConfig, writeAppConfig } from "../core/config.js";
 import { getChanges } from "../core/compare.js";
@@ -107,9 +108,21 @@ export class SessionManager {
 
   public async removeSession(sessionId: string): Promise<void> {
     const session = this.requireSession(sessionId);
+    const storagePath = session.state.storagePath;
     session.stop();
     this.sessions.delete(sessionId);
     await this.persistProjects();
+
+    // Xóa toàn bộ thư mục storage (.ai-track data) trên disk
+    if (storagePath && storagePath !== "unknown") {
+      try {
+        await rm(storagePath, { recursive: true, force: true });
+        console.log(`Đã xóa storage: ${storagePath}`);
+      } catch (error) {
+        // Không throw — session đã xóa khỏi quản lý, chỉ log lỗi disk
+        console.error(`Không xóa được storage ${storagePath}:`, error);
+      }
+    }
   }
 
   public async getHistory(sessionId: string): Promise<SessionHistoryView> {
