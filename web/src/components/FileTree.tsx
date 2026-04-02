@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { ActionIcon, Badge, Button, Group, Modal, Progress, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
-import { IconAlertTriangle, IconCheck, IconChevronRight, IconFolder, IconFolderOpen, IconInfoCircle, IconRestore, IconX } from "@tabler/icons-react";
-import { FileIcon as ReactFileIcon, defaultStyles } from "react-file-icon";
+import { IconAlertTriangle, IconCheck, IconInfoCircle, IconRestore, IconX } from "@tabler/icons-react";
 
 import type { ChangeEntry, SessionState } from "../api";
+import { VirtualFileTree } from "./VirtualFileTree";
 import layoutStyles from "../styles/layout.module.css";
 import treeStyles from "../styles/components/tree.module.css";
 
@@ -31,7 +31,16 @@ interface FileTreeProps {
   rollbackAllProgress: number;
 }
 
-export function FileTree({
+/**
+ * FileTree component - Hierarchical file change display
+ * Optimized with:
+ * - VirtualFileTree: virtual scrolling for 1000+ files
+ * - useMemo: memoize buildTree computation
+ * - useCallback: memoize event handlers
+ * - React.memo: prevent re-render on props change
+ */
+
+function FileTreeComponent({
   session,
   changes,
   selectedPath,
@@ -55,7 +64,8 @@ export function FileTree({
   const deletedCount = changes.filter((c) => c.type === "deleted").length;
   const renamedCount = changes.filter((c) => c.type === "renamed").length;
 
-  function toggleFolder(path: string) {
+  // useCallback để optimize folder toggle
+  const toggleFolder = useCallback((path: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
       if (next.has(path)) {
@@ -65,7 +75,7 @@ export function FileTree({
       }
       return next;
     });
-  }
+  }, []);
 
   function handleResetClick() {
     setResetConfirmOpened(true);
@@ -114,20 +124,15 @@ export function FileTree({
       </div>
 
       <ScrollArea className={layoutStyles.filetreeScroll} style={{ flex: 1 }}>
-        <Stack gap={0}>
-          {tree.map((node) => (
-            <TreeNode
-              key={node.path}
-              node={node}
-              depth={0}
-              selectedPath={selectedPath}
-              selectedPathType={selectedPathType}
-              expandedFolders={expandedFolders}
-              onSelect={onSelect}
-              onToggleFolder={toggleFolder}
-            />
-          ))}
-        </Stack>
+        <VirtualFileTree
+          nodes={tree}
+          selectedPath={selectedPath}
+          selectedPathType={selectedPathType}
+          expandedFolders={expandedFolders}
+          onSelect={onSelect}
+          onToggleFolder={toggleFolder}
+          height={500}
+        />
       </ScrollArea>
 
       <div className={layoutStyles.filetreeActions}>
@@ -338,93 +343,8 @@ export function FileTree({
   );
 }
 
-interface TreeNodeProps {
-  node: FileTreeNode;
-  depth: number;
-  selectedPath: string | null;
-  selectedPathType: "file" | "folder" | null;
-  expandedFolders: Set<string>;
-  onSelect: (path: string, type: "file" | "folder") => void;
-  onToggleFolder: (path: string) => void;
-}
+export const FileTree = React.memo(FileTreeComponent);
 
-function TreeNode({ node, depth, selectedPath, selectedPathType, expandedFolders, onSelect, onToggleFolder }: TreeNodeProps) {
-  if (node.isFolder) {
-    const isExpanded = expandedFolders.has(node.path);
-    return (
-      <div>
-        <UnstyledButton 
-          className={`${treeStyles.treeFolder} ${treeStyles.treeFolderHover} ${selectedPath === node.path && selectedPathType === "folder" ? treeStyles.treeFolderSelected : ""} ${node.type === "added" && selectedPath === node.path && selectedPathType === "folder" ? treeStyles.treeFolderAddedSelected : ""} ${node.type === "deleted" && selectedPath === node.path && selectedPathType === "folder" ? treeStyles.treeFolderDeletedSelected : ""} ${node.type === "renamed" && selectedPath === node.path && selectedPathType === "folder" ? treeStyles.treeFolderRenamedSelected : ""}`}
-          onClick={() => onSelect(node.path, "folder")} 
-          style={{ paddingLeft: depth * 16 + 12 }}
-        >
-          <Group gap="xs" wrap="nowrap">
-            <ActionIcon variant="transparent" size="sm" color="gray" onClick={(event) => {
-              event.stopPropagation();
-              onToggleFolder(node.path);
-            }} aria-label={isExpanded ? "Thu gọn thư mục" : "Mở rộng thư mục"}>
-               <IconChevronRight size={14} stroke={1.8} className={`${treeStyles.folderArrow} ${isExpanded ? treeStyles.folderArrowExpanded : ""}`} />
-            </ActionIcon>
-             {isExpanded ? <IconFolderOpen size={15} stroke={1.8} className={treeStyles.folderGlyph} /> : <IconFolder size={15} stroke={1.8} className={treeStyles.folderGlyph} />}
-            <Text size="sm" fw={600} lineClamp={1}>
-              {node.name}
-            </Text>
-            <Badge size="xs" variant="light" color={badgeColor(node.type)} radius="sm">
-              {node.type === "added" ? "+" : node.type === "deleted" ? "-" : node.type === "renamed" ? "→" : "~"}
-            </Badge>
-            <Text size="xs" c="dimmed" ml="auto">
-              {node.changeCount}
-            </Text>
-          </Group>
-        </UnstyledButton>
-        {isExpanded && node.children ? (
-          <Stack gap={0}>
-            {node.children.map((child) => (
-              <TreeNode key={child.path} node={child} depth={depth + 1} selectedPath={selectedPath} selectedPathType={selectedPathType} expandedFolders={expandedFolders} onSelect={onSelect} onToggleFolder={onToggleFolder} />
-            ))}
-          </Stack>
-        ) : null}
-      </div>
-    );
-  }
-
-  return (
-    <UnstyledButton 
-      className={`${treeStyles.treeFile} ${treeStyles.treeFileHover} ${selectedPath === node.path && selectedPathType === "file" ? treeStyles.treeFileSelected : ""} ${node.type === "added" && selectedPath === node.path && selectedPathType === "file" ? treeStyles.treeFileAddedSelected : ""} ${node.type === "deleted" && selectedPath === node.path && selectedPathType === "file" ? treeStyles.treeFileDeletedSelected : ""}`}
-      onClick={() => onSelect(node.path, "file")} 
-      style={{ paddingLeft: depth * 16 + 28 }}
-    >
-      <Group gap="xs" wrap="nowrap">
-        <FileTypeIcon path={node.name} />
-        <Text size="sm" lineClamp={1} style={{ flex: 1 }}>
-          {node.name}
-        </Text>
-        <Badge size="xs" variant="light" color={badgeColor(node.type)} radius="sm">
-          {node.type === "added" ? "+" : node.type === "deleted" ? "-" : node.type === "renamed" ? "→" : "~"}
-        </Badge>
-      </Group>
-    </UnstyledButton>
-  );
-}
-
-function FileTypeIcon({ path }: { path: string }) {
-  const ext = path.split(".").pop()?.toLowerCase();
-  const styleKey = (ext && ext in defaultStyles ? ext : "txt") as keyof typeof defaultStyles;
-  const style = defaultStyles[styleKey];
-
-  return (
-    <span className={treeStyles.fileIcon}>
-      <ReactFileIcon extension={ext || "txt"} {...style} />
-    </span>
-  );
-}
-
-function badgeColor(type: ChangeEntry["type"]): string {
-  if (type === "added") return "green";
-  if (type === "deleted") return "red";
-  if (type === "renamed") return "blue";
-  return "yellow";
-}
 
 function buildTree(changes: ChangeEntry[]): FileTreeNode[] {
   const root: FileTreeNode = { name: "", path: "", type: "modified", isBinary: false, isFolder: true, children: [] };

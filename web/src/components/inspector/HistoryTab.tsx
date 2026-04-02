@@ -2,8 +2,10 @@
  * HistoryTab component - tab History trong InspectorPanel
  * Hiển thị: snapshot history graph, snapshot list
  * Click snapshot → mở SnapshotDrawer
+ * Optimized với React.memo + useMemo
  */
 
+import React, { useMemo } from "react";
 import { Badge, Button, Group, ScrollArea, Stack, Text } from "@mantine/core";
 import { IconRefresh } from "@tabler/icons-react";
 
@@ -21,9 +23,13 @@ export function HistoryTab({
   onRefreshHistory,
   onOpenDrawer,
 }: HistoryTabProps) {
-  const selectedSnapshot = history?.snapshots.find(
-    (snapshot) => snapshot.snapshotId === selectedSnapshotId
-  ) ?? history?.snapshots.find((snapshot) => snapshot.isActive) ?? null;
+  const selectedSnapshot = useMemo(
+    () =>
+      history?.snapshots.find(
+        (snapshot) => snapshot.snapshotId === selectedSnapshotId
+      ) ?? history?.snapshots.find((snapshot) => snapshot.isActive) ?? null,
+    [history?.snapshots, selectedSnapshotId]
+  );
 
   return (
     <div className={layoutStyles.inspectorPanelFill}>

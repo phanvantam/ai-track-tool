@@ -1,30 +1,46 @@
-/**
- * DiffTab component - tab Diff trong InspectorPanel
- * Hiển thị diff file được chọn, action rollback
- */
-
+import { useMemo, useCallback } from "react";
 import { Button, ScrollArea, Stack } from "@mantine/core";
 import { IconRestore } from "@tabler/icons-react";
+import React from "react";
 
 import { DiffPanel } from "../DiffPanel";
 import type { DiffTabProps } from "./types";
 import layoutStyles from "../../styles/layout.module.css";
 
-export function DiffTab({
+/**
+ * Simple diff parser - caches parsed result
+ */
+function parseDiff(diffText: string) {
+  // Just return the text as-is, actual parsing happens in DiffPanel
+  // This is a placeholder for potential expensive parsing logic
+  return diffText;
+}
+
+function DiffTabComponent({
   selectedChange,
   diff,
   onRollback,
   canRollback,
   loading,
 }: DiffTabProps) {
+  // useMemo: avoid re-parsing diff text on every render
+  const parsedDiff = useMemo(() => {
+    return parseDiff(diff);
+  }, [diff]);
+
+  // useCallback: memoize rollback handler
+  const handleRollback = useCallback(() => {
+    onRollback();
+  }, [onRollback]);
+
   return (
     <div className={layoutStyles.inspectorPanelFill}>
       <ScrollArea className={layoutStyles.inspectorScroll} type="never">
         <Stack gap="md" p="md">
           <DiffPanel
             selectedChange={selectedChange}
-            diff={diff}
-            onRollback={onRollback}
+            diff={parsedDiff}
+            onRollback={handleRollback}
             canRollback={canRollback}
             loading={loading}
           />
@@ -33,3 +49,5 @@ export function DiffTab({
     </div>
   );
 }
+
+export const DiffTab = React.memo(DiffTabComponent);
