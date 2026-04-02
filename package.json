@@ -20,7 +20,8 @@
     "blessed": "^0.1.81",
     "commander": "^14.0.1",
     "diff": "^8.0.2",
-    "ignore": "^7.0.5"
+    "ignore": "^7.0.5",
+    "react-window": "^2.2.7"
   },
   "devDependencies": {
     "@types/blessed": "^0.1.25",

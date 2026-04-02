@@ -3,15 +3,19 @@ import { useEffect, useState } from "react";
 /**
  * Hook để detect media query breakpoints.
  * Sử dụng window.matchMedia để track responsive state.
+ * 
+ * ⚠️ SSR Safe: Initializes with false, updates after mount.
  *
  * @param query - Media query string (e.g., "(min-width: 1024px)")
  * @returns boolean - true nếu media query match, false nếu không
  */
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Chỉ chạy trên client
+    setMounted(true);
+    // Chỉ chạy trên client sau mount
     const mediaQueryList = window.matchMedia(query);
     setMatches(mediaQueryList.matches);
 
@@ -27,7 +31,8 @@ export function useMediaQuery(query: string): boolean {
     };
   }, [query]);
 
-  return matches;
+  // Không return cho đến khi mounted để tránh hydration mismatch
+  return mounted ? matches : false;
 }
 
 /**

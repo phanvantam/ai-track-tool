@@ -52,7 +52,8 @@ export function ResizablePanelLayout({
   };
 
   // Desktop: Horizontal layout với resizable panels
-  if (isDesktop) {
+  // Default: show desktop layout nếu media query chưa ready
+  if (isDesktop || (!isTablet && !isMobile)) {
     return (
       <div className={styles.container}>
         <Group
