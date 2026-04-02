@@ -1,7 +1,9 @@
-import { access, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { access, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 
 import { getEffectiveStorageBaseDir, getLegacyStorageRoot, getManagedStorageRoot, readAppConfig } from "./config.js";
+import { isLockInfoActive, readLockInfo, releaseLock } from "./lock.js";
+import { atomicWriteFile, recoverIncompleteTransactions } from "./transaction.js";
 import type { SnapshotManifest, TrackState } from "../types.js";
 
 export async function resolveStorageRoot(targetPath: string): Promise<string> {
@@ -40,12 +42,22 @@ export function getSnapshotRoot(storagePath: string, snapshotId: string): string
 
 export async function writeState(state: TrackState): Promise<void> {
   const stateFilePath = getStateFilePath(state.storagePath);
-  await mkdir(path.dirname(stateFilePath), { recursive: true });
-  await writeFile(stateFilePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  await atomicWriteFile(stateFilePath, `${JSON.stringify(state, null, 2)}\n`);
 }
 
 export async function readState(targetPath: string): Promise<TrackState> {
-  const stateFilePath = getStateFilePath(await resolveStorageRoot(targetPath));
+  const storagePath = await resolveStorageRoot(targetPath);
+  const lockInfo = await readLockInfo(storagePath);
+
+  if (!isLockInfoActive(lockInfo)) {
+    if (lockInfo) {
+      await releaseLock(storagePath, lockInfo.lockId);
+    }
+
+    await recoverIncompleteTransactions(storagePath);
+  }
+
+  const stateFilePath = getStateFilePath(storagePath);
   const content = await readFile(stateFilePath, "utf8");
   return JSON.parse(content) as TrackState;
 }
@@ -78,8 +90,7 @@ export async function hasStateAtStorage(storagePath: string): Promise<boolean> {
 
 export async function writeManifest(storagePath: string, manifest: SnapshotManifest): Promise<void> {
   const manifestPath = path.join(getSnapshotRoot(storagePath, manifest.snapshotId), "manifest.json");
-  await mkdir(path.dirname(manifestPath), { recursive: true });
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  await atomicWriteFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
 export async function readManifest(storagePath: string, snapshotId: string): Promise<SnapshotManifest> {

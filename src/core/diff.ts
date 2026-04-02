@@ -13,7 +13,7 @@ async function readText(filePath: string | null): Promise<string> {
 
 export async function renderChangeDiff(change: ChangeEntry): Promise<string> {
   if (change.isBinary) {
-    return `${change.path}\n[binary] ${change.type}`;
+    return `${change.path}\nBinary files differ`;
   }
 
   const beforeText = await readText(change.beforeAbsolutePath);
@@ -39,7 +39,8 @@ export async function renderDiffReport(changes: ChangeEntry[]): Promise<string> 
 
   const rendered = await Promise.all(
     changes.map(async (change) => {
-      const header = `=== ${change.type.toUpperCase()} ${change.path} ===`;
+      const directoryNote = change.directoryRename ? ` [dir ${change.directoryRename.oldPath} -> ${change.directoryRename.newPath}]` : "";
+      const header = `=== ${change.type.toUpperCase()} ${change.path}${directoryNote} ===`;
       const diffText = await renderChangeDiff(change);
       return `${header}\n${diffText}`;
     }),

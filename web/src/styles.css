@@ -123,6 +123,13 @@ body {
   padding: 12px;
 }
 
+.guide-card {
+  background: #181b28;
+  border: 1px solid #262a3d;
+  border-radius: 10px;
+  padding: 14px;
+}
+
 .info-menu {
   background: #151823;
   border: 1px solid #262a3d;

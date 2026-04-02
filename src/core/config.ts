@@ -3,9 +3,12 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import type { GarbageCollectionConfig } from "../types.js";
+
 export interface AppConfig {
   storageDir: string | null;
   projects: string[];
+  gc: GarbageCollectionConfig;
 }
 
 export interface ConfigDefaults {
@@ -17,6 +20,12 @@ export interface ConfigDefaults {
 const DEFAULT_CONFIG: AppConfig = {
   storageDir: null,
   projects: [],
+  gc: {
+    enabled: true,
+    retentionDays: 30,
+    maxFullCopies: 1,
+    autoRun: false,
+  },
 };
 
 export function getConfigFilePath(): string {
@@ -63,9 +72,16 @@ export async function readAppConfig(): Promise<AppConfig> {
   try {
     const content = await readFile(getConfigFilePath(), "utf8");
     const parsed = JSON.parse(content) as Partial<AppConfig>;
+    const parsedGc = parsed.gc ?? DEFAULT_CONFIG.gc;
     return {
       storageDir: parsed.storageDir ? path.resolve(parsed.storageDir) : null,
       projects: Array.isArray(parsed.projects) ? parsed.projects.filter((p): p is string => typeof p === "string") : [],
+      gc: {
+        enabled: typeof parsedGc.enabled === "boolean" ? parsedGc.enabled : DEFAULT_CONFIG.gc.enabled,
+        retentionDays: typeof parsedGc.retentionDays === "number" ? parsedGc.retentionDays : DEFAULT_CONFIG.gc.retentionDays,
+        maxFullCopies: typeof parsedGc.maxFullCopies === "number" ? parsedGc.maxFullCopies : DEFAULT_CONFIG.gc.maxFullCopies,
+        autoRun: typeof parsedGc.autoRun === "boolean" ? parsedGc.autoRun : DEFAULT_CONFIG.gc.autoRun,
+      },
     };
   } catch {
     return DEFAULT_CONFIG;
@@ -76,6 +92,12 @@ export async function writeAppConfig(config: AppConfig): Promise<AppConfig> {
   const normalized: AppConfig = {
     storageDir: config.storageDir ? path.resolve(config.storageDir) : null,
     projects: [...new Set(config.projects)],
+    gc: {
+      enabled: config.gc.enabled,
+      retentionDays: config.gc.retentionDays,
+      maxFullCopies: config.gc.maxFullCopies,
+      autoRun: config.gc.autoRun,
+    },
   };
 
   const configFilePath = getConfigFilePath();

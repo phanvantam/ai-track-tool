@@ -1,15 +1,18 @@
 import path from "node:path";
 
+import { normalizePathForComparison } from "./case-sensitivity.js";
+import { materializeSnapshotFile } from "./delta.js";
+import { attachDirectoryRenames } from "./directory-rename.js";
 import { readManifest, readState } from "./state.js";
 import { scanCurrentFiles } from "./snapshot.js";
-import type { ChangeEntry, CurrentFileEntry, SnapshotFileEntry } from "../types.js";
+import type { ChangeEntry, CurrentFileEntry, FilesystemConfig, SnapshotFileEntry } from "../types.js";
 
-function mapCurrentFiles(files: CurrentFileEntry[]): Map<string, CurrentFileEntry> {
-  return new Map(files.map((file) => [file.path, file]));
+function mapCurrentFiles(files: CurrentFileEntry[], filesystemConfig?: FilesystemConfig): Map<string, CurrentFileEntry> {
+  return new Map(files.map((file) => [normalizePathForComparison(file.path, filesystemConfig), file]));
 }
 
-function mapSnapshotFiles(files: SnapshotFileEntry[]): Map<string, SnapshotFileEntry> {
-  return new Map(files.map((file) => [file.path, file]));
+function mapSnapshotFiles(files: SnapshotFileEntry[], filesystemConfig?: FilesystemConfig): Map<string, SnapshotFileEntry> {
+  return new Map(files.map((file) => [normalizePathForComparison(file.path, filesystemConfig), file]));
 }
 
 function mapCurrentFilesByHash(files: CurrentFileEntry[]): Map<string, CurrentFileEntry[]> {
@@ -36,26 +39,42 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
   const state = await readState(targetPathInput);
   const manifest = await readManifest(state.storagePath, state.activeSnapshotId);
   const currentFiles = await scanCurrentFiles(state.targetPath, manifest.ignoreRules);
-  const currentMap = mapCurrentFiles(currentFiles);
-  const snapshotMap = mapSnapshotFiles(manifest.files);
+  const currentMap = mapCurrentFiles(currentFiles, state.filesystemConfig);
+  const snapshotMap = mapSnapshotFiles(manifest.files, state.filesystemConfig);
   const currentHashMap = mapCurrentFilesByHash(currentFiles);
   const snapshotHashMap = mapSnapshotFilesByHash(manifest.files);
-  const snapshotFilesRoot = path.join(state.storagePath, "snapshots", manifest.snapshotId, "files");
   const changes: ChangeEntry[] = [];
   const processedPaths = new Set<string>();
 
   // First pass: detect modifications and renames
   for (const snapshotFile of manifest.files) {
-    const currentFile = currentMap.get(snapshotFile.path);
+    const normalizedSnapshotPath = normalizePathForComparison(snapshotFile.path, state.filesystemConfig);
+    const currentFile = currentMap.get(normalizedSnapshotPath);
 
     // File exists at same path
     if (currentFile) {
+      if (currentFile.path !== snapshotFile.path && currentFile.hash === snapshotFile.hash) {
+        const beforeAbsolutePath = await materializeSnapshotFile(state.storagePath, manifest.snapshotId, snapshotFile.path);
+        changes.push({
+          path: currentFile.path,
+          type: "renamed",
+          isBinary: snapshotFile.isBinary || currentFile.isBinary,
+          beforeAbsolutePath,
+          afterAbsolutePath: currentFile.absolutePath,
+          oldPath: snapshotFile.path,
+        });
+        processedPaths.add(snapshotFile.path);
+        processedPaths.add(currentFile.path);
+        continue;
+      }
+
       if (currentFile.hash !== snapshotFile.hash) {
+        const beforeAbsolutePath = await materializeSnapshotFile(state.storagePath, manifest.snapshotId, snapshotFile.path);
         changes.push({
           path: snapshotFile.path,
           type: "modified",
           isBinary: snapshotFile.isBinary || currentFile.isBinary,
-          beforeAbsolutePath: path.join(snapshotFilesRoot, snapshotFile.path),
+          beforeAbsolutePath,
           afterAbsolutePath: currentFile.absolutePath,
         });
       }
@@ -68,11 +87,12 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
     const renamedCandidate = candidatesWithSameHash.find((candidate) => !snapshotMap.has(candidate.path));
 
     if (renamedCandidate) {
+      const beforeAbsolutePath = await materializeSnapshotFile(state.storagePath, manifest.snapshotId, snapshotFile.path);
       changes.push({
         path: renamedCandidate.path,
         type: "renamed",
         isBinary: snapshotFile.isBinary,
-        beforeAbsolutePath: path.join(snapshotFilesRoot, snapshotFile.path),
+        beforeAbsolutePath,
         afterAbsolutePath: renamedCandidate.absolutePath,
         oldPath: snapshotFile.path,
       });
@@ -82,11 +102,12 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
     }
 
     // File was deleted
+    const beforeAbsolutePath = await materializeSnapshotFile(state.storagePath, manifest.snapshotId, snapshotFile.path);
     changes.push({
       path: snapshotFile.path,
       type: "deleted",
       isBinary: snapshotFile.isBinary,
-      beforeAbsolutePath: path.join(snapshotFilesRoot, snapshotFile.path),
+      beforeAbsolutePath,
       afterAbsolutePath: null,
     });
     processedPaths.add(snapshotFile.path);
@@ -107,5 +128,5 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
     });
   }
 
-  return changes.sort((left, right) => left.path.localeCompare(right.path));
+  return attachDirectoryRenames(changes.sort((left, right) => left.path.localeCompare(right.path)));
 }

@@ -14,12 +14,19 @@ async function createWebRoot(): Promise<string> {
   return root;
 }
 
+async function isolateConfigHome(): Promise<void> {
+  const homePath = await mkdtemp(path.join(tmpdir(), "ai-track-home-"));
+  vi.stubEnv("HOME", homePath);
+}
+
 describe("web server", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("tra ve state va changes", async () => {
+    await isolateConfigHome();
     const targetPath = await mkdtemp(path.join(tmpdir(), "ai-track-web-session-"));
     const webRoot = await createWebRoot();
     await writeFile(path.join(targetPath, "note.txt"), "hello\n", "utf8");
@@ -45,6 +52,7 @@ describe("web server", () => {
   });
 
   it("rollback va reset snapshot qua api", async () => {
+    await isolateConfigHome();
     const targetPath = await mkdtemp(path.join(tmpdir(), "ai-track-web-api-"));
     const webRoot = await createWebRoot();
     await writeFile(path.join(targetPath, "note.txt"), "hello\n", "utf8");
@@ -87,6 +95,7 @@ describe("web server", () => {
   });
 
   it("runWebCommand in url", async () => {
+    await isolateConfigHome();
     const targetPath = await mkdtemp(path.join(tmpdir(), "ai-track-web-command-"));
     await writeFile(path.join(targetPath, "base.txt"), "base\n", "utf8");
     const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);

@@ -1,6 +1,7 @@
-import { rollbackFile } from "../core/rollback.js";
+import type { MergeStrategy } from "../types.js";
+import { rollbackFileWithStrategy } from "../core/rollback.js";
 
-export async function runRollbackCommand(targetPath: string, relativePath: string): Promise<void> {
-  const result = await rollbackFile(targetPath, relativePath);
+export async function runRollbackCommand(targetPath: string, relativePath: string, strategy: MergeStrategy = "theirs"): Promise<void> {
+  const result = await rollbackFileWithStrategy(targetPath, relativePath, strategy);
   process.stdout.write(`${relativePath}: ${result}\n`);
 }

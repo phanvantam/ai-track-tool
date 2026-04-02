@@ -1,9 +1,17 @@
-import { copyFile, mkdir, readdir, readFile, realpath, rm, stat } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, stat } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 
-import { DEFAULT_IGNORE_RULES, createIgnoreMatcher, loadIgnoreRules } from "./ignore.js";
-import { getSnapshotRoot, readStateIfExists, resolveStorageRoot, writeManifest, writeState } from "./state.js";
+import { detectBinaryContentInfo } from "./binary-detector.js";
+import { detectFilesystemConfig } from "./case-sensitivity.js";
+import { computeDelta, getDeltaFilePath, readSnapshotFileBuffer } from "./delta.js";
+import { createMetadataCache, getMetadataCachePath, METADATA_CACHE_VERSION, readMetadataCache, scanCurrentFilesWithCache, writeMetadataCache } from "./incremental-scan.js";
+import { DEFAULT_IGNORE_RULES, loadIgnoreRules } from "./ignore.js";
+import { withStorageLock } from "./lock.js";
+import { appendReflogEntry } from "./reflog.js";
+import { filterSparseFiles } from "./shallow.js";
+import { getSnapshotRoot, getStateFilePath, readManifest, readStateIfExists, resolveStorageRoot, writeManifest, writeState } from "./state.js";
+import { atomicWriteFile, backupFileForTransaction, recordDeleteDirectory, recoverIncompleteTransactions, runInTransaction } from "./transaction.js";
 import type { CurrentFileEntry, SnapshotFileEntry, SnapshotManifest, TrackState } from "../types.js";
 
 export async function normalizeTargetPath(inputPath: string): Promise<string> {
@@ -39,74 +47,14 @@ export function hashBuffer(content: Buffer): string {
 }
 
 export function detectBinaryContent(content: Buffer): boolean {
-  if (content.length === 0) {
-    return false;
-  }
-
-  const sampleSize = Math.min(content.length, 8000);
-
-  for (let index = 0; index < sampleSize; index += 1) {
-    if (content[index] === 0) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-async function collectFilesRecursive(targetPath: string, currentPath: string, ignoreMatcher: ReturnType<typeof createIgnoreMatcher>): Promise<CurrentFileEntry[]> {
-  const directoryEntries = await readdir(currentPath, { withFileTypes: true });
-  const files: CurrentFileEntry[] = [];
-
-  for (const entry of directoryEntries) {
-    const absolutePath = path.join(currentPath, entry.name);
-    const relativePath = path.relative(targetPath, absolutePath).replaceAll(path.sep, "/");
-
-    if (ignoreMatcher.ignores(relativePath)) {
-      continue;
-    }
-
-    if (entry.isDirectory()) {
-      try {
-        files.push(...(await collectFilesRecursive(targetPath, absolutePath, ignoreMatcher)));
-      } catch (error) {
-        // Ignore errors from subdirectories (might be deleted/renamed during scan)
-        if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-          throw error;
-        }
-      }
-      continue;
-    }
-
-    if (!entry.isFile()) {
-      continue;
-    }
-
-    try {
-      const content = await readFile(absolutePath);
-      const fileStats = await stat(absolutePath);
-
-      files.push({
-        path: relativePath,
-        absolutePath,
-        hash: hashBuffer(content),
-        size: fileStats.size,
-        mtimeMs: fileStats.mtimeMs,
-        isBinary: detectBinaryContent(content),
-      });
-    } catch (error) {
-      // File might be deleted/renamed between readdir and readFile
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        throw error;
-      }
-    }
-  }
-
-  return files;
+  return detectBinaryContentInfo("unknown", content).isBinary;
 }
 
 export async function scanCurrentFiles(targetPath: string, ignoreRules: string[] = DEFAULT_IGNORE_RULES): Promise<CurrentFileEntry[]> {
-  return collectFilesRecursive(targetPath, targetPath, createIgnoreMatcher(ignoreRules));
+  const storagePath = await resolveStorageRoot(targetPath);
+  const metadataCache = await readMetadataCache(storagePath);
+  const state = await readStateIfExists(targetPath);
+  return filterSparseFiles(await scanCurrentFilesWithCache(targetPath, metadataCache, ignoreRules), state?.shallowConfig);
 }
 
 function toSnapshotFileEntries(files: CurrentFileEntry[]): SnapshotFileEntry[] {
@@ -116,66 +64,220 @@ function toSnapshotFileEntries(files: CurrentFileEntry[]): SnapshotFileEntry[] {
     size: file.size,
     mtimeMs: file.mtimeMs,
     isBinary: file.isBinary,
+    inode: file.inode,
+    uid: file.uid,
+    gid: file.gid,
+    mode: file.mode,
   }));
+}
+
+function calculateSnapshotChecksum(snapshotFiles: SnapshotFileEntry[]): string {
+  const digest = createHash("sha256");
+
+  for (const file of [...snapshotFiles].sort((left, right) => left.path.localeCompare(right.path))) {
+    digest.update(file.path);
+    digest.update(file.hash);
+  }
+
+  return digest.digest("hex");
+}
+
+async function createSnapshotInternal(
+  targetPath: string,
+  mergedIgnoreRules: string[],
+  storagePath: string,
+  action: "create" | "reset",
+): Promise<TrackState> {
+  const snapshotId = createSnapshotId();
+  const timestamp = new Date().toISOString();
+  const snapshotRoot = getSnapshotRoot(storagePath, snapshotId);
+  const snapshotFilesRoot = path.join(snapshotRoot, "files");
+  const metadataCachePath = getMetadataCachePath(storagePath);
+  const existingState = await readStateIfExists(targetPath);
+  const parentSnapshotId = existingState?.activeSnapshotId ?? null;
+  const parentManifest = parentSnapshotId ? await readManifest(storagePath, parentSnapshotId) : null;
+  const parentFiles = new Map(parentManifest?.files.map((file) => [file.path, file]) ?? []);
+  const metadataCache = await readMetadataCache(storagePath);
+  const currentFiles = filterSparseFiles(await scanCurrentFilesWithCache(targetPath, metadataCache, mergedIgnoreRules), existingState?.shallowConfig);
+  const filesystemConfig = existingState?.filesystemConfig ?? (await detectFilesystemConfig(targetPath));
+
+  const { result: state, transaction } = await runInTransaction(storagePath, `snapshot:${snapshotId}`, async (tx) => {
+    await recordDeleteDirectory(storagePath, tx, snapshotRoot);
+    await backupFileForTransaction(storagePath, tx, getStateFilePath(storagePath));
+    await backupFileForTransaction(storagePath, tx, metadataCachePath);
+    await mkdir(snapshotFilesRoot, { recursive: true });
+
+    const snapshotFiles: SnapshotFileEntry[] = [];
+
+    for (const file of currentFiles) {
+      const parentFile = parentFiles.get(file.path);
+      const baseEntry: SnapshotFileEntry = {
+        path: file.path,
+        hash: file.hash,
+        size: file.size,
+        mtimeMs: file.mtimeMs,
+        isBinary: file.isBinary,
+        binaryType: file.binaryType,
+        symlink: file.symlink,
+        inode: file.inode,
+        uid: file.uid,
+        gid: file.gid,
+        mode: file.mode,
+      };
+
+      if (file.symlink) {
+        if (parentSnapshotId && parentFile && parentFile.hash === file.hash) {
+          snapshotFiles.push({
+            ...baseEntry,
+            storageKind: "reference",
+            baseSnapshotId: parentSnapshotId,
+          });
+        } else {
+          snapshotFiles.push({
+            ...baseEntry,
+            storageKind: "symlink",
+          });
+        }
+
+        continue;
+      }
+
+      if (parentSnapshotId && parentFile) {
+        if (parentFile.hash === file.hash) {
+          snapshotFiles.push({
+            ...baseEntry,
+            storageKind: "reference",
+            baseSnapshotId: parentSnapshotId,
+          });
+          continue;
+        }
+
+        if (!file.isBinary && !parentFile.isBinary) {
+          const previousText = (await readSnapshotFileBuffer(storagePath, parentSnapshotId, file.path)).toString("utf8");
+          const currentText = (file.content ?? await readFile(file.absolutePath)).toString("utf8");
+          const deltaBuffer = computeDelta(file.path, previousText, currentText);
+          const currentSize = Buffer.byteLength(currentText, "utf8");
+
+          if (deltaBuffer.length < currentSize) {
+            const deltaAbsolutePath = getDeltaFilePath(storagePath, snapshotId, file.path);
+            const relativeDeltaPath = path.relative(storagePath, deltaAbsolutePath).replaceAll(path.sep, "/");
+            await atomicWriteFile(deltaAbsolutePath, deltaBuffer);
+            snapshotFiles.push({
+              ...baseEntry,
+              storageKind: "delta",
+              baseSnapshotId: parentSnapshotId,
+              deltaPath: relativeDeltaPath,
+              compressedSize: deltaBuffer.length,
+              uncompressedSize: currentSize,
+            });
+            continue;
+          }
+        }
+      }
+
+      const destinationPath = path.join(snapshotFilesRoot, file.path);
+      await mkdir(path.dirname(destinationPath), { recursive: true });
+      // Dùng buffer đã hash để snapshot khớp tuyệt đối với manifest nếu file đổi giữa scan và ghi.
+      await atomicWriteFile(destinationPath, file.content ?? await readFile(file.absolutePath));
+      snapshotFiles.push({
+        ...baseEntry,
+        storageKind: "full",
+      });
+    }
+
+    const manifest: SnapshotManifest = {
+      snapshotId,
+      parentSnapshotId,
+      createdAt: timestamp,
+      targetPath,
+      ignoreRules: [...mergedIgnoreRules],
+      files: snapshotFiles,
+      metadata: {
+        scannedAt: timestamp,
+        osType: process.platform,
+        filesMetadata: Object.fromEntries(snapshotFiles.map((file) => [file.path, { ...file }])),
+      },
+      lastTransactionId: tx.transactionId,
+      author: process.env.USER || process.env.USERNAME || "system",
+      summary: action === "reset" ? "Reset snapshot" : "Create snapshot",
+      tags: [],
+      checksum: calculateSnapshotChecksum(snapshotFiles),
+    };
+
+    const state: TrackState = {
+      activeSnapshotId: snapshotId,
+      targetPath,
+      storagePath,
+      updatedAt: timestamp,
+      metadataCacheVersion: METADATA_CACHE_VERSION,
+      lastTransactionId: tx.transactionId,
+      previousSnapshotId: parentSnapshotId ?? undefined,
+      snapshotHistory: [snapshotId, ...(existingState?.snapshotHistory ?? (parentSnapshotId ? [parentSnapshotId] : []))],
+      filesystemConfig,
+      shallowConfig: existingState?.shallowConfig,
+    };
+
+    await writeManifest(storagePath, manifest);
+    await writeState(state);
+    await writeMetadataCache(storagePath, createMetadataCache(targetPath, currentFiles));
+
+    return state;
+  });
+
+  if (state.lastTransactionId !== transaction.transactionId) {
+    throw new Error(`Transaction mismatch khi tạo snapshot: ${snapshotId}`);
+  }
+
+  await appendReflogEntry(storagePath, {
+    action,
+    fromSnapshotId: parentSnapshotId ?? undefined,
+    toSnapshotId: snapshotId,
+    author: process.env.USER || process.env.USERNAME || "system",
+    filesAffected: currentFiles.length,
+    reason: action === "reset" ? "user reset snapshot" : "create snapshot",
+  });
+
+  return state;
 }
 
 export async function createSnapshot(targetPathInput: string, ignoreRules: string[] = DEFAULT_IGNORE_RULES): Promise<TrackState> {
   const targetPath = await normalizeTargetPath(targetPathInput);
   const mergedIgnoreRules = ignoreRules === DEFAULT_IGNORE_RULES ? await loadIgnoreRules(targetPath) : ignoreRules;
-  const snapshotId = createSnapshotId();
-  const currentFiles = await scanCurrentFiles(targetPath, mergedIgnoreRules);
   const storagePath = await resolveStorageRoot(targetPath);
-  const snapshotRoot = getSnapshotRoot(storagePath, snapshotId);
-  const snapshotFilesRoot = path.join(snapshotRoot, "files");
 
-  await mkdir(snapshotFilesRoot, { recursive: true });
+  await recoverIncompleteTransactions(storagePath);
 
-  for (const file of currentFiles) {
-    const destinationPath = path.join(snapshotFilesRoot, file.path);
-    await mkdir(path.dirname(destinationPath), { recursive: true });
-    await copyFile(file.absolutePath, destinationPath);
-  }
-
-  const manifest: SnapshotManifest = {
-    snapshotId,
-    createdAt: new Date().toISOString(),
-      targetPath,
-      ignoreRules: [...mergedIgnoreRules],
-      files: toSnapshotFileEntries(currentFiles),
-    };
-
-  const state: TrackState = {
-    activeSnapshotId: snapshotId,
-    targetPath,
-    storagePath,
-    updatedAt: new Date().toISOString(),
-  };
-
-  await writeManifest(storagePath, manifest);
-  await writeState(state);
-
-  return state;
+  return withStorageLock(storagePath, "create-snapshot", async () => {
+    return createSnapshotInternal(targetPath, mergedIgnoreRules, storagePath, "create");
+  });
 }
 
 export async function ensureSnapshot(targetPathInput: string, ignoreRules: string[] = DEFAULT_IGNORE_RULES): Promise<TrackState> {
   const targetPath = await normalizeTargetPath(targetPathInput);
-  const existingState = await readStateIfExists(targetPath);
+  const mergedIgnoreRules = ignoreRules === DEFAULT_IGNORE_RULES ? await loadIgnoreRules(targetPath) : ignoreRules;
+  const storagePath = await resolveStorageRoot(targetPath);
 
-  if (existingState) {
-    return existingState;
-  }
+  await recoverIncompleteTransactions(storagePath);
 
-  return createSnapshot(targetPath, ignoreRules);
+  return withStorageLock(storagePath, "ensure-snapshot", async () => {
+    const existingState = await readStateIfExists(targetPath);
+
+    if (existingState) {
+      return existingState;
+    }
+
+    return createSnapshotInternal(targetPath, mergedIgnoreRules, storagePath, "create");
+  });
 }
 
 export async function resetSnapshot(targetPathInput: string, ignoreRules: string[] = DEFAULT_IGNORE_RULES): Promise<TrackState> {
   const targetPath = await normalizeTargetPath(targetPathInput);
-  const existingState = await readStateIfExists(targetPath);
+  const mergedIgnoreRules = ignoreRules === DEFAULT_IGNORE_RULES ? await loadIgnoreRules(targetPath) : ignoreRules;
+  const storagePath = await resolveStorageRoot(targetPath);
 
-  if (existingState) {
-    await rm(getSnapshotRoot(existingState.storagePath, existingState.activeSnapshotId), { recursive: true, force: true });
-    await mkdir(existingState.storagePath, { recursive: true });
-  }
+  await recoverIncompleteTransactions(storagePath);
 
-  return createSnapshot(targetPath, ignoreRules);
+  return withStorageLock(storagePath, "reset-snapshot", async () => {
+    return createSnapshotInternal(targetPath, mergedIgnoreRules, storagePath, "reset");
+  });
 }

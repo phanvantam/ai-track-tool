@@ -208,9 +208,12 @@ export function FileTree({
             </Stack>
           </Group>
           <div style={{ background: 'rgba(34, 197, 94, 0.1)', padding: '12px', borderRadius: '6px', borderLeft: '3px solid #22c55e' }}>
-            <Text size="xs" fw={600} c="green.4" mb={6}>
-              ℹ️ ĐIỀU NÀY SẼ XẢY RA
-            </Text>
+            <Group gap={6} mb={6}>
+              <IconInfoCircle size={16} stroke={1.8} style={{ color: '#4ade80' }} />
+              <Text size="xs" fw={600} c="green.4">
+                ĐIỀU NÀY SẼ XẢY RA
+              </Text>
+            </Group>
             <Text size="xs" c="dimmed">
               • Tất cả thay đổi hiện tại sẽ được chấp nhận<br />
               • Snapshot cũ bị thay thế bằng trạng thái hiện tại<br />
@@ -243,9 +246,12 @@ export function FileTree({
             </Stack>
           </Group>
           <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '6px', borderLeft: '3px solid #ef4444' }}>
-            <Text size="xs" fw={600} c="red.4" mb={6}>
-              ⚠️ CẢNH BÁO NGHIÊM TRỌNG
-            </Text>
+            <Group gap={6} mb={6}>
+              <IconAlertTriangle size={16} stroke={1.8} style={{ color: '#f87171' }} />
+              <Text size="xs" fw={600} c="red.4">
+                CẢNH BÁO NGHIÊM TRỌNG
+              </Text>
+            </Group>
             <Text size="xs" c="dimmed">
               • TẤT CẢ {addedCount + modifiedCount + deletedCount} file thay đổi sẽ bị ghi đè<br />
               • File added sẽ bị XÓA khỏi project<br />

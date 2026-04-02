@@ -1,7 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from "react";
-import { Button, Group, Modal, Progress, Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Button, Group, Modal, Progress, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconAlertTriangle, IconFolderPlus } from "@tabler/icons-react";
+import { IconAlertTriangle, IconFolderPlus, IconHelpCircle, IconInfoCircle } from "@tabler/icons-react";
 
 import { addSession, getConfig, getDiff, getState, pauseSession, refreshSession, removeSession, resetSnapshot, resumeSession, rollback, subscribeSessions, updateConfig, type ConfigPayload, type SessionState } from "./api";
 import { DiffPanel } from "./components/DiffPanel";
@@ -29,6 +29,7 @@ export default function App() {
   const [removeConfirmOpened, setRemoveConfirmOpened] = useState(false);
   const [rollbackConfirmOpened, setRollbackConfirmOpened] = useState(false);
   const [rollbackAllProgress, setRollbackAllProgress] = useState(0);
+  const [guideOpened, setGuideOpened] = useState(false);
 
   async function loadSessions() {
     const payload = await getState();
@@ -336,18 +337,25 @@ export default function App() {
   }
 
   const headerActions = (
-    <ProjectToolbar
-      sessions={sessions}
-      activeSessionId={activeSessionId}
-      loading={loading}
-      onSessionChange={setActiveSessionId}
-      onAddProject={() => setAddProjectOpened(true)}
-      onSettings={() => setSettingsOpened(true)}
-      onRefresh={() => void handleRefresh()}
-      onPause={() => void handlePause()}
-      onResume={() => void handleResume()}
-      onRemove={handleRemoveClick}
-    />
+    <Group gap="xs" wrap="nowrap">
+      <Tooltip label="Hướng dẫn sử dụng" position="bottom">
+        <ActionIcon variant="light" size="lg" radius="md" onClick={() => setGuideOpened(true)} aria-label="Mở hướng dẫn sử dụng">
+          <IconHelpCircle size={18} stroke={1.8} />
+        </ActionIcon>
+      </Tooltip>
+      <ProjectToolbar
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        loading={loading}
+        onSessionChange={setActiveSessionId}
+        onAddProject={() => setAddProjectOpened(true)}
+        onSettings={() => setSettingsOpened(true)}
+        onRefresh={() => void handleRefresh()}
+        onPause={() => void handlePause()}
+        onResume={() => void handleResume()}
+        onRemove={handleRemoveClick}
+      />
+    </Group>
   );
 
   const mainContent = !activeSession ? (
@@ -394,6 +402,48 @@ export default function App() {
         {mainContent}
         <DiffPanel selectedChange={selectedChange} diff={diffText} onRollback={handleRollbackClick} canRollback={!!selectedChange} loading={loading} />
       </Layout>
+
+      <Modal opened={guideOpened} onClose={() => setGuideOpened(false)} title="Hướng dẫn sử dụng" centered radius="md" size="lg" classNames={{ content: "project-modal", header: "project-modal-header", title: "project-modal-title" }}>
+        <Stack gap="lg">
+          <div className="guide-card">
+            <Text fw={600} mb={6}>Bắt đầu nhanh</Text>
+            <Stack gap={6}>
+              <Text size="sm">Chọn project ở thanh trên cùng.</Text>
+              <Text size="sm">Chọn file hoặc thư mục ở cột bên trái.</Text>
+              <Text size="sm">Xem chi tiết thay đổi ở khung bên phải.</Text>
+              <Text size="sm">Dùng nút làm mới khi muốn quét lại trạng thái hiện tại.</Text>
+            </Stack>
+          </div>
+
+          <div className="guide-card">
+            <Text fw={600} mb={6}>Cách đọc diff</Text>
+            <Stack gap={6}>
+              <Text size="sm"><Text component="span" fw={600} c="green.3">Dòng bắt đầu bằng `+`</Text> là nội dung mới thêm.</Text>
+              <Text size="sm"><Text component="span" fw={600} c="red.3">Dòng bắt đầu bằng `-`</Text> là nội dung cũ bị xóa.</Text>
+              <Text size="sm"><Text component="span" fw={600} c="violet.3">`@@`</Text> cho biết vị trí khối thay đổi trong file.</Text>
+              <Text size="sm"><Text component="span" fw={600} c="blue.3">`---` và `+++`</Text> là tên file trước và sau khi sửa.</Text>
+            </Stack>
+          </div>
+
+          <div className="guide-card">
+            <Text fw={600} mb={6}>Ví dụ dễ hiểu</Text>
+            <Stack gap={6}>
+              <Text size="sm">Nếu thấy `+s` ở cuối file, nghĩa là vừa thêm ký tự `s`.</Text>
+              <Text size="sm">Nếu thấy `-abc`, nghĩa là dòng `abc` đã bị xóa.</Text>
+              <Text size="sm">`\ No newline at end of file` nghĩa là file không có dòng trống cuối cùng.</Text>
+            </Stack>
+          </div>
+
+          <div className="guide-card">
+            <Text fw={600} mb={6}>Lưu ý khi khôi phục</Text>
+            <Stack gap={6}>
+              <Text size="sm">Khôi phục sẽ ghi đè file hiện tại bằng snapshot cũ.</Text>
+              <Text size="sm">Thao tác này không nên dùng nếu bạn chưa kiểm tra kỹ diff.</Text>
+              <Text size="sm">Nếu chưa chắc, chỉ xem diff và tự sửa tay.</Text>
+            </Stack>
+          </div>
+        </Stack>
+      </Modal>
 
       <Modal opened={addProjectOpened} onClose={() => { if (!addingSession) { setAddProjectOpened(false); } }} title="Thêm dự án mới" centered radius="md" classNames={{ content: "project-modal", header: "project-modal-header", title: "project-modal-title" }}>
         <Stack gap="md">
@@ -473,9 +523,12 @@ export default function App() {
             </Stack>
           </Group>
           <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '6px', borderLeft: '3px solid #ef4444' }}>
-            <Text size="xs" fw={600} c="red.4" mb={6}>
-              ⚠️ LƯU Ý
-            </Text>
+            <Group gap={6} mb={6}>
+              <IconInfoCircle size={16} stroke={1.8} style={{ color: '#f87171' }} />
+              <Text size="xs" fw={600} c="red.4">
+                LƯU Ý
+              </Text>
+            </Group>
             <Text size="xs" c="dimmed">
               • Project sẽ bị xóa khỏi danh sách theo dõi<br />
               • File watcher sẽ dừng ngay lập tức<br />
@@ -508,9 +561,12 @@ export default function App() {
             </Stack>
           </Group>
           <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '12px', borderRadius: '6px', borderLeft: '3px solid #f59e0b' }}>
-            <Text size="xs" fw={600} c="yellow.4" mb={6}>
-              ⚠️ CẢNH BÁO
-            </Text>
+            <Group gap={6} mb={6}>
+              <IconAlertTriangle size={16} stroke={1.8} style={{ color: '#fbbf24' }} />
+              <Text size="xs" fw={600} c="yellow.4">
+                CẢNH BÁO
+              </Text>
+            </Group>
             <Text size="xs" c="dimmed">
               • File hiện tại sẽ bị ghi đè bằng phiên bản từ snapshot<br />
               • Thay đổi này KHÔNG THỂ hoàn tác<br />
