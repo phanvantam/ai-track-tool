@@ -4,16 +4,34 @@ Tool theo dõi thay đổi file do AI gây ra mà không cần git.
 
 ## Cách dùng chính
 
-### 1. Dành cho người dùng (Cài đặt từ npm)
+### 1. Cài đặt từ npm (toàn cầu)
 ```bash
-# Cài đặt CLI trên hệ thống
 npm install -g ai-track-tool
-
-# Khởi động Web UI cho thư mục hiện tại
 ai-track web
 ```
 
-### 2. Dành cho phát triển (Tự động cập nhật giao diện)
+### 2. Cài đặt Local trên Mac (không cần npm publish)
+```bash
+cd /Users/tampv/Projects/ai-track-tool
+
+# Build dự án
+npm run build:all
+
+# Tạo thư mục bin và symlink
+mkdir -p ~/bin
+ln -sf $PWD/dist/cli.js ~/bin/ai-track
+chmod +x ~/bin/ai-track
+
+# Thêm ~/bin vào PATH (chạy 1 lần)
+echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Kiểm tra
+ai-track --help
+ai-track web
+```
+
+### 3. Dành cho phát triển (Tự động cập nhật giao diện)
 Mở 2 cửa sổ terminal và chạy song song:
 - **Terminal 1**: `npm run watch:web` (Tự động build lại web khi đổi code src)
 - **Terminal 2**: `npm run dev -- web` (Chạy server hiển thị giao diện)
