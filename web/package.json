@@ -1,0 +1,27 @@
+{
+  "name": "ai-track-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@tabler/icons-react": "^3.41.1",
+    "antd": "^6.3.5",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-file-icon": "^1.6.0",
+    "react-hotkeys-hook": "^5.2.4",
+    "react-resizable-panels": "^4.8.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@types/react-file-icon": "^1.0.4",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7"
+  }
+}

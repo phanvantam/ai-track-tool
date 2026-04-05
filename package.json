@@ -1,0 +1,56 @@
+{
+  "name": "ai-track-tool",
+  "version": "0.1.1",
+  "description": "Theo dõi thay đổi file do AI gây ra mà không cần git. Hỗ trợ CLI và Web UI.",
+  "author": "Antigravity",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tampv/ai-track-tool.git"
+  },
+  "workspaces": [
+    "web"
+  ],
+  "type": "module",
+  "bin": {
+    "ai-track": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "web/dist",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:web": "npm run build --workspace web",
+    "build:all": "npm run build && npm run build:web",
+    "watch:web": "npm run build --workspace web -- --watch",
+    "dev": "tsx src/cli.ts",
+    "dev:web": "tsx --watch src/cli.ts web",
+    "prepublishOnly": "npm run build:all",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "ai",
+    "track",
+    "file-watcher",
+    "snapshot",
+    "diff",
+    "cli"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "blessed": "^0.1.81",
+    "commander": "^14.0.1",
+    "diff": "^8.0.2",
+    "ignore": "^7.0.5"
+  },
+  "devDependencies": {
+    "@types/blessed": "^0.1.25",
+    "@types/node": "^24.5.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
