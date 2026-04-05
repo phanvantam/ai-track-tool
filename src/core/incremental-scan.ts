@@ -4,9 +4,10 @@ import path from "node:path";
 
 import type { CurrentFileEntry, FileMetadata, MetadataCache } from "../types.js";
 import { detectBinaryContentInfo } from "./binary-detector.js";
-import { createIgnoreMatcher, DEFAULT_IGNORE_RULES } from "./ignore.js";
+import { createIgnoreMatcher, DEFAULT_IGNORE_RULES, readNestedGitIgnoreRules } from "./ignore.js";
 import { isCircularSymlink, readSymlinkInfo } from "./symlink.js";
 import { atomicWriteFile } from "./transaction.js";
+import ignore, { type Ignore } from "ignore";
 
 export const METADATA_CACHE_VERSION = 1;
 
@@ -102,10 +103,21 @@ export function getModifiedFiles(
     .map((file) => file.path);
 }
 
+/**
+ * Tạo bản sao ignore matcher mới dựa trên rules hiện tại + rules bổ sung.
+ * Cần thiết vì thư viện `ignore` không hỗ trợ clone.
+ */
+function extendIgnoreMatcher(existingRules: string[], additionalRules: string[]): { matcher: Ignore; rules: string[] } {
+  const merged = [...existingRules, ...additionalRules];
+  return { matcher: ignore().add(merged), rules: merged };
+}
+
 async function collectFilesRecursive(
   targetPath: string,
   currentPath: string,
-  ignoreMatcher: ReturnType<typeof createIgnoreMatcher>,
+  ignoreMatcher: Ignore,
+  /** Rules hiện tại dùng để tạo bản sao khi gặp .gitignore con */
+  currentRules: string[],
   previousFiles: Map<string, FileMetadata>,
 ): Promise<CurrentFileEntry[]> {
   const directoryEntries = await readdir(currentPath, { withFileTypes: true });
@@ -121,7 +133,18 @@ async function collectFilesRecursive(
 
     if (entry.isDirectory()) {
       try {
-        files.push(...(await collectFilesRecursive(targetPath, absolutePath, ignoreMatcher, previousFiles)));
+        // Đọc .gitignore con trong thư mục con (nếu có)
+        const nestedRules = await readNestedGitIgnoreRules(absolutePath, relativePath);
+        let childMatcher = ignoreMatcher;
+        let childRules = currentRules;
+
+        if (nestedRules.length > 0) {
+          const extended = extendIgnoreMatcher(currentRules, nestedRules);
+          childMatcher = extended.matcher;
+          childRules = extended.rules;
+        }
+
+        files.push(...(await collectFilesRecursive(targetPath, absolutePath, childMatcher, childRules, previousFiles)));
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
           throw error;
@@ -248,5 +271,5 @@ export async function scanCurrentFilesWithCache(
   ignoreRules: string[] = DEFAULT_IGNORE_RULES,
 ): Promise<CurrentFileEntry[]> {
   const previousFiles = previousCache ? new Map(Object.entries(previousCache.files)) : new Map<string, FileMetadata>();
-  return collectFilesRecursive(targetPath, targetPath, createIgnoreMatcher(ignoreRules), previousFiles);
+  return collectFilesRecursive(targetPath, targetPath, createIgnoreMatcher(ignoreRules), ignoreRules, previousFiles);
 }

@@ -1,4 +1,4 @@
-import { Button, Card, Empty, Flex, Modal, Popconfirm, Tag, Tooltip, Typography, message } from "antd";
+import { Alert, Button, Card, Empty, Flex, Modal, Popconfirm, Tag, Tooltip, Typography, message } from "antd";
 import { IconArrowsMaximize, IconArrowsMinimize, IconCopy, IconRestore } from "@tabler/icons-react";
 import { useState } from "react";
 import type { ChangeEntry } from "../api";
@@ -121,6 +121,16 @@ export function DiffPanel({ selectedChange, diff, onRollback, canRollback, loadi
             <Empty 
               description="Chọn một file để xem thay đổi" 
               image={Empty.PRESENTED_IMAGE_SIMPLE} 
+            />
+          </Flex>
+        ) : selectedChange.diffSkipped ? (
+          <Flex align="center" justify="center" style={{ height: '100%', padding: 24 }}>
+            <Alert
+              type="warning"
+              showIcon
+              message="Không hiển thị diff"
+              description={selectedChange.diffSkipped}
+              style={{ maxWidth: 420 }}
             />
           </Flex>
         ) : (

@@ -18,6 +18,21 @@ async function readText(filePath: string | null): Promise<string> {
   return readFile(filePath, "utf8");
 }
 
+/** Ngưỡng tối đa dòng — file vượt quá sẽ không tính diff chi tiết */
+const MAX_DIFF_LINES = 1000;
+
+/** Prefix đánh dấu kết quả diff bị bỏ qua vì file quá lớn */
+const DIFF_SKIPPED_PREFIX = "DIFF_SKIPPED:";
+
+function lineCount(text: string): number {
+  if (text.length === 0) return 0;
+  let count = 1;
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10) count++;
+  }
+  return count;
+}
+
 export async function renderChangeDiff(change: ChangeEntry): Promise<string> {
   if (change.isBinary) {
     return `${change.path}\nBinary files differ`;
@@ -25,6 +40,11 @@ export async function renderChangeDiff(change: ChangeEntry): Promise<string> {
 
   const beforeText = await readText(change.beforeAbsolutePath);
   const afterText = await readText(change.afterAbsolutePath);
+
+  // File quá lớn → không tính diff chi tiết, trả về marker
+  if (lineCount(beforeText) > MAX_DIFF_LINES || lineCount(afterText) > MAX_DIFF_LINES) {
+    return `${DIFF_SKIPPED_PREFIX}File vượt quá ${MAX_DIFF_LINES} dòng — bỏ qua tính diff.`;
+  }
 
   return createPatch(change.path, beforeText, afterText, "snapshot", "current");
 }
@@ -64,6 +84,11 @@ export async function renderSnapshotDiffForPath(
     fromFile ? getSnapshotFileContent(storagePath, fromSnapshotId, relativePath) : Promise.resolve(""),
     toFile ? getSnapshotFileContent(storagePath, toSnapshotId, relativePath) : Promise.resolve(""),
   ]);
+
+  // File quá lớn → không tính diff chi tiết, trả về marker
+  if (lineCount(beforeText) > MAX_DIFF_LINES || lineCount(afterText) > MAX_DIFF_LINES) {
+    return `${DIFF_SKIPPED_PREFIX}File vượt quá ${MAX_DIFF_LINES} dòng — bỏ qua tính diff.`;
+  }
 
   return createPatch(relativePath, beforeText, afterText, `snapshot:${fromSnapshotId.slice(0, 8)}`, `snapshot:${toSnapshotId.slice(0, 8)}`);
 }
@@ -108,4 +133,15 @@ export async function renderDiffReport(changes: ChangeEntry[]): Promise<string> 
   );
 
   return rendered.join("\n\n");
+}
+
+/**
+ * Kiểm tra diff text có phải marker bị skip không.
+ * Trả về message lý do nếu bị skip, hoặc null nếu diff bình thường.
+ */
+export function parseDiffSkipped(diffText: string): string | null {
+  if (diffText.startsWith(DIFF_SKIPPED_PREFIX)) {
+    return diffText.slice(DIFF_SKIPPED_PREFIX.length);
+  }
+  return null;
 }

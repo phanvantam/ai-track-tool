@@ -114,3 +114,34 @@ async function readGitIgnoreRules(targetPath: string): Promise<string[]> {
     return [];
   }
 }
+
+/**
+ * Đọc .gitignore trong một thư mục con (nếu tồn tại).
+ * Trả về mảng rules đã được prefix cho đúng context relative path.
+ */
+export async function readNestedGitIgnoreRules(dirAbsolutePath: string, dirRelativePath: string): Promise<string[]> {
+  const rules = await readGitIgnoreRules(dirAbsolutePath);
+  if (rules.length === 0) return [];
+  return prefixIgnoreRules(rules, dirRelativePath);
+}
+
+/**
+ * Prefix rules từ .gitignore con để hoạt động đúng với root-relative paths.
+ * Ví dụ: .gitignore ở "storage/logs" chứa "*" → prefix thành "storage/logs/*"
+ * Rule negation "!.gitignore" → "!storage/logs/.gitignore"
+ */
+export function prefixIgnoreRules(rules: string[], prefix: string): string[] {
+  return rules.flatMap((raw) => {
+    const rule = raw.trim();
+    if (!rule || rule.startsWith("#")) return [];
+
+    const isNegation = rule.startsWith("!");
+    const pattern = isNegation ? rule.slice(1) : rule;
+
+    // Bỏ dấu "/" ở đầu nếu có (rule anchored to current dir)
+    const cleaned = pattern.startsWith("/") ? pattern.slice(1) : pattern;
+
+    const prefixed = `${prefix}/${cleaned}`;
+    return [isNegation ? `!${prefixed}` : prefixed];
+  });
+}

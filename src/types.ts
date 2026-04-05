@@ -289,6 +289,7 @@ export interface TrackState {
   snapshotHistory?: string[];
   filesystemConfig?: FilesystemConfig;
   shallowConfig?: ShallowConfig;
+  bulkCollapseThreshold?: number;
 }
 
 export interface CurrentFileEntry extends FileMetadata {
@@ -307,6 +308,8 @@ export interface ChangeEntry {
   directoryRename?: DirectoryRename;
   insertions?: number;
   deletions?: number;
+  /** Thông báo khi file bị bỏ qua tính diff (quá lớn) */
+  diffSkipped?: string;
   /** Khi có giá trị, entry này đại diện cho N files cùng folder đã gom nhóm */
   collapsedCount?: number;
 }

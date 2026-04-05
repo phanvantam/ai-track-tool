@@ -28,12 +28,12 @@ export function SnapshotDrawerCompareTab({
     <>
       <div style={{ marginTop: 15 }}>
         <Typography.Text strong style={{ fontSize: 14, display: 'block', marginBottom: 12 }}>
-          So sánh với mốc hiện tại
+          Thay đổi khi khôi phục về mốc này
         </Typography.Text>
         {selectedSnapshot.isActive ? (
           <Typography.Text type="secondary">Đây là mốc hiện tại.</Typography.Text>
         ) : snapshotDiffs.length === 0 ? (
-          <Typography.Text type="secondary">Không có khác biệt với mốc hiện tại.</Typography.Text>
+          <Typography.Text type="secondary">Mốc này giống mốc hiện tại, không có thay đổi.</Typography.Text>
         ) : (
           <>
             <Flex gap="small" wrap="wrap" style={{ marginBottom: 12 }}>
@@ -100,7 +100,7 @@ export function SnapshotDrawerCompareTab({
         {selectedSnapshot && selectedSnapshotDiffPath ? (
           <Flex vertical gap="middle">
             <Flex gap="small" wrap="wrap">
-              <Tag>{`${shortId(selectedSnapshot.snapshotId)} -> mốc hiện tại`}</Tag>
+              <Tag>{`mốc hiện tại → ${shortId(selectedSnapshot.snapshotId)}`}</Tag>
               {snapshotDiffs
                 .filter((entry) => entry.path === selectedSnapshotDiffPath)
                 .map((entry) => (

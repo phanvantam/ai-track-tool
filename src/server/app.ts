@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { access } from "node:fs/promises";
 import path from "node:path";
-
+import { fileURLToPath } from "node:url";
 import { SseHub } from "./events.js";
 import { handleRequest } from "./routes.js";
 import { SessionManager } from "./session.js";
@@ -33,7 +33,10 @@ interface StartWebServerOptions {
 }
 
 export async function startWebServer(initialPaths: string[], options: StartWebServerOptions = {}): Promise<{ url: string; close: () => void }> {
-  const webRoot = options.webRoot ?? path.resolve("web/dist");
+  // Tính packageRoot từ vị trí file thực thi (dist/server/app.js → lên 2 cấp)
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const packageRoot = path.resolve(__dirname, "..", "..");
+  const webRoot = options.webRoot ?? path.join(packageRoot, "web", "dist");
   await access(webRoot);
 
   const sseHub = new SseHub();

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
 
 import { readAppConfig, writeAppConfig } from "../core/config.js";
-import { getChanges } from "../core/compare.js";
+import { diffSnapshotVsCurrent, getChanges } from "../core/compare.js";
 import { countDiffLines, renderSnapshotDiffForPath } from "../core/diff.js";
 import { runFsck } from "../core/fsck.js";
 import { runGarbageCollection, type GarbageCollectionReport } from "../core/gc.js";
@@ -135,6 +135,14 @@ export class SessionManager {
 
   public async getSnapshotDiff(sessionId: string, fromSnapshotId: string, toSnapshotId: string): Promise<SnapshotDiffEntry[]> {
     return this.requireSession(sessionId).getSnapshotDiff(fromSnapshotId, toSnapshotId);
+  }
+
+  /**
+   * So sánh manifest snapshot đã chọn với filesystem hiện tại.
+   * Trả về danh sách file sẽ thay đổi khi restore về snapshot đó.
+   */
+  public async getSnapshotVsCurrentDiff(sessionId: string, snapshotId: string): Promise<SnapshotDiffEntry[]> {
+    return this.requireSession(sessionId).getSnapshotVsCurrentDiff(snapshotId);
   }
 
   public async getSnapshotFileDiff(sessionId: string, fromSnapshotId: string, toSnapshotId: string, relativePath: string): Promise<string> {
@@ -322,6 +330,25 @@ class ManagedSession {
       }));
     } catch (error) {
       // Snapshot bị xóa trên disk nhưng vẫn còn trong state → trả về rỗng
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * So sánh manifest snapshot đã chọn với filesystem hiện tại.
+   * Không tính diff text chi tiết — chỉ trả về danh sách file và loại thay đổi.
+   */
+  public async getSnapshotVsCurrentDiff(snapshotId: string): Promise<SnapshotDiffEntry[]> {
+    try {
+      const rawDiffs = await diffSnapshotVsCurrent(this.targetPath, snapshotId);
+      return rawDiffs.map((entry) => ({
+        path: entry.path,
+        type: entry.type,
+      }));
+    } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return [];
       }

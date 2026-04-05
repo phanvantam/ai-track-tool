@@ -14,6 +14,7 @@ interface SessionContainerProps {
   onSwitchSession: (sessionId: string) => void;
   onAddProject: () => void;
   onSettings: () => void;
+  onGuide: () => void;
   /** Gọi khi bấm Pause — App sẽ mở confirm dialog rồi gọi lại executePause */
   onRequestPause: () => void;
   /** Gọi khi bấm Resume — App sẽ mở confirm dialog rồi gọi lại executeResume */
@@ -32,6 +33,7 @@ export function SessionContainer({
   onSwitchSession,
   onAddProject,
   onSettings,
+  onGuide,
   onRequestPause,
   onRequestResume,
   onRemoveSession,
@@ -75,6 +77,7 @@ export function SessionContainer({
       }}
       onAddProject={onAddProject}
       onSettings={onSettings}
+      onGuide={onGuide}
       onRefresh={handleRefresh}
       onPause={onRequestPause}
       onResume={onRequestResume}

@@ -8,7 +8,7 @@ interface UseConfigManagerReturn {
   configError: string | null;
   savingConfig: boolean;
   loadConfig: () => Promise<void>;
-  saveConfig: (storageDir: string | null) => Promise<void>;
+  saveConfig: (storageDir: string | null, bulkCollapseThreshold?: number) => Promise<void>;
 }
 
 /**
@@ -42,11 +42,11 @@ export function useConfigManager(): UseConfigManagerReturn {
   }
 
   // Lưu config
-  async function handleSaveConfig(storageDir: string | null) {
+  async function handleSaveConfig(storageDir: string | null, bulkCollapseThreshold?: number) {
     setSavingConfig(true);
 
     try {
-      const payload = await updateConfig(storageDir);
+      const payload = await updateConfig(storageDir, bulkCollapseThreshold);
       setConfig(payload);
       setConfigError(null);
       notifications.show({

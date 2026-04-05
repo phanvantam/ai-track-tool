@@ -3,7 +3,8 @@ import path from "node:path";
 import { normalizePathForComparison } from "./case-sensitivity.js";
 import { materializeSnapshotFile } from "./delta.js";
 import { collapseBulkDirectoryChanges } from "./directory-rename.js";
-import { countDiffLines, renderChangeDiff } from "./diff.js";
+import { readAppConfig } from "./config.js";
+import { countDiffLines, parseDiffSkipped, renderChangeDiff } from "./diff.js";
 import { readManifest, readState } from "./state.js";
 import { scanCurrentFiles } from "./snapshot.js";
 import type { ChangeEntry, CurrentFileEntry, FilesystemConfig, SnapshotFileEntry } from "../types.js";
@@ -138,8 +139,11 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
     });
   }
 
+  const config = await readAppConfig();
+  const threshold = state.bulkCollapseThreshold ?? config.bulkCollapseThreshold;
+
   // Gom folder nhiều file thành 1 entry per (dir, type)
-  const collapsed = collapseBulkDirectoryChanges(changes);
+  const collapsed = collapseBulkDirectoryChanges(changes, threshold);
 
   // Tính insertions/deletions CHỈ cho entries còn lại sau collapse
   // (tránh tính diff cho hàng ngàn file thuộc bulk directory)
@@ -152,6 +156,13 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
 
       try {
         const diffText = await renderChangeDiff(change);
+
+        // Kiểm tra diff có bị skip vì file quá lớn không
+        const skippedMsg = parseDiffSkipped(diffText);
+        if (skippedMsg) {
+          return { ...change, diffSkipped: skippedMsg };
+        }
+
         const stats = countDiffLines(diffText);
         return { ...change, ...stats };
       } catch {
@@ -161,4 +172,44 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
   );
 
   return withStats;
+}
+
+/**
+ * So sánh manifest của snapshot đã chọn với filesystem hiện tại.
+ * Trả về danh sách file khác biệt (added/modified/deleted) dưới dạng SnapshotDiffEntry.
+ * "added" = file có trong snapshot nhưng không có trên disk (sẽ được phục hồi)
+ * "deleted" = file có trên disk nhưng không có trong snapshot (sẽ bị xóa khi restore)
+ * "modified" = file tồn tại ở cả hai nhưng hash khác nhau (sẽ bị ghi đè)
+ */
+export async function diffSnapshotVsCurrent(
+  targetPathInput: string,
+  snapshotId: string,
+): Promise<{ path: string; type: "added" | "modified" | "deleted" }[]> {
+  const state = await readState(targetPathInput);
+  const manifest = await readManifest(state.storagePath, snapshotId);
+  const currentFiles = await scanCurrentFiles(state.targetPath, manifest.ignoreRules);
+
+  const currentMap = new Map(currentFiles.map((f) => [f.path, f]));
+  const snapshotMap = new Map(manifest.files.map((f) => [f.path, f]));
+  const diffs: { path: string; type: "added" | "modified" | "deleted" }[] = [];
+
+  // File trong snapshot nhưng không có / khác trên disk
+  for (const snapshotFile of manifest.files) {
+    const currentFile = currentMap.get(snapshotFile.path);
+    if (!currentFile) {
+      // File sẽ được phục hồi khi restore
+      diffs.push({ path: snapshotFile.path, type: "added" });
+    } else if (currentFile.hash !== snapshotFile.hash) {
+      diffs.push({ path: snapshotFile.path, type: "modified" });
+    }
+  }
+
+  // File trên disk nhưng không có trong snapshot → sẽ bị xóa khi restore
+  for (const currentFile of currentFiles) {
+    if (!snapshotMap.has(currentFile.path)) {
+      diffs.push({ path: currentFile.path, type: "deleted" });
+    }
+  }
+
+  return diffs.sort((a, b) => a.path.localeCompare(b.path));
 }

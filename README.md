@@ -4,10 +4,13 @@ Tool theo dõi thay đổi file do AI gây ra mà không cần git.
 
 ## Cách dùng chính
 
-### 1. Dành cho người dùng (Sử dụng bản build sẵn)
+### 1. Dành cho người dùng (Cài đặt từ npm)
 ```bash
-npm run build:web
-npm run dev -- web
+# Cài đặt CLI trên hệ thống
+npm install -g ai-track-tool
+
+# Khởi động Web UI cho thư mục hiện tại
+ai-track web
 ```
 
 ### 2. Dành cho phát triển (Tự động cập nhật giao diện)

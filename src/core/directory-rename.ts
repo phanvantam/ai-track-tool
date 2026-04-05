@@ -1,7 +1,7 @@
 import type { ChangeEntry, ChangeType } from "../types.js";
 
 /** Ngưỡng tối thiểu để gom nhóm files cùng folder */
-const BULK_COLLAPSE_THRESHOLD = 10;
+const BULK_COLLAPSE_THRESHOLD = 50;
 
 
 /**

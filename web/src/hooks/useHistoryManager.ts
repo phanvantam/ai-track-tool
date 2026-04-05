@@ -5,6 +5,7 @@ import {
   getLock,
   getSnapshotDiff,
   getSnapshotFileDiff,
+  getSnapshotVsCurrentDiff,
   type LockInfo,
   type SessionHistoryView,
   type SnapshotDiffEntry,
@@ -23,6 +24,10 @@ interface UseHistoryManagerReturn {
     sessionId: string,
     fromSnapshotId: string,
     toSnapshotId: string,
+  ) => Promise<void>;
+  loadSnapshotVsCurrentDiff: (
+    sessionId: string,
+    snapshotId: string,
   ) => Promise<void>;
   selectSnapshotDiffPath: (path: string | null) => void;
   loadSnapshotFileDiff: (
@@ -74,9 +79,37 @@ export function useHistoryManager(): UseHistoryManagerReturn {
     }
   }
 
-  // Chọn snapshot
+  // Chọn snapshot → reset diff cũ để tải lại
   function handleSelectSnapshot(snapshotId: string | null) {
     setSelectedSnapshotId(snapshotId);
+    setSnapshotDiffs([]);
+    setSelectedSnapshotDiffPath(null);
+    setSnapshotDiffText("");
+  }
+
+  /**
+   * So sánh manifest snapshot đã chọn với filesystem hiện tại.
+   * Dùng cho mục đích xem trước thay đổi khi restore.
+   */
+  async function handleLoadSnapshotVsCurrentDiff(
+    sessionId: string,
+    snapshotId: string,
+  ) {
+    try {
+      const diffs = await getSnapshotVsCurrentDiff(sessionId, snapshotId);
+      setSnapshotDiffs(diffs);
+      setSelectedSnapshotDiffPath((current) =>
+        current && diffs.some((entry) => entry.path === current) ? current : diffs[0]?.path ?? null
+      );
+    } catch (error) {
+      notifications.show({
+        color: "red",
+        message: error instanceof Error ? error.message : "Lỗi so sánh snapshot với trạng thái hiện tại.",
+      });
+      setSnapshotDiffs([]);
+      setSelectedSnapshotDiffPath(null);
+      setSnapshotDiffText("");
+    }
   }
 
   // Tải diff giữa 2 snapshots
@@ -137,6 +170,7 @@ export function useHistoryManager(): UseHistoryManagerReturn {
     loadHistory: handleLoadHistory,
     selectSnapshot: handleSelectSnapshot,
     loadSnapshotDiff: handleLoadSnapshotDiff,
+    loadSnapshotVsCurrentDiff: handleLoadSnapshotVsCurrentDiff,
     selectSnapshotDiffPath: handleSelectSnapshotDiffPath,
     loadSnapshotFileDiff: handleLoadSnapshotFileDiff,
   };

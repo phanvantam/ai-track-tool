@@ -540,15 +540,23 @@ function renderFileItem(
       </Flex>
       
       <Flex align="center" gap={4} className="change-meta">
-        {change.insertions !== undefined && change.insertions > 0 && (
-          <span style={{ color: 'var(--color-success)', fontSize: 11, fontWeight: 600 }}>
-            +{change.insertions}
-          </span>
-        )}
-        {change.deletions !== undefined && change.deletions > 0 && (
-          <span style={{ color: 'var(--color-danger)', fontSize: 11, fontWeight: 600 }}>
-            -{change.deletions}
-          </span>
+        {change.diffSkipped ? (
+          <Tooltip title={change.diffSkipped} mouseEnterDelay={0.3}>
+            <Tag color="orange" style={{ fontSize: 9, margin: 0 }}>quá lớn</Tag>
+          </Tooltip>
+        ) : (
+          <>
+            {change.insertions !== undefined && change.insertions > 0 && (
+              <span style={{ color: 'var(--color-success)', fontSize: 11, fontWeight: 600 }}>
+                +{change.insertions}
+              </span>
+            )}
+            {change.deletions !== undefined && change.deletions > 0 && (
+              <span style={{ color: 'var(--color-danger)', fontSize: 11, fontWeight: 600 }}>
+                -{change.deletions}
+              </span>
+            )}
+          </>
         )}
         {change.isBinary && <Tag style={{ fontSize: 9 }}>bin</Tag>}
       </Flex>

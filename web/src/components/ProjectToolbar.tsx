@@ -1,6 +1,7 @@
 import { Button, Flex, Select, Tooltip } from "antd";
 import {
   IconFolderPlus,
+  IconHelp,
   IconPlayerPause,
   IconPlayerPlay,
   IconRefresh,
@@ -16,6 +17,7 @@ interface ProjectToolbarProps {
   onSessionChange: (sessionId: string | null) => void;
   onAddProject: () => void;
   onSettings: () => void;
+  onGuide: () => void;
   onRefresh: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -34,6 +36,7 @@ export function ProjectToolbar({
   onSessionChange,
   onAddProject,
   onSettings,
+  onGuide,
   onRefresh,
   onPause,
   onResume,
@@ -76,6 +79,14 @@ export function ProjectToolbar({
           <Button 
             icon={<IconSettings size={16} />} 
             onClick={onSettings}
+            className="hover-lift"
+          />
+        </Tooltip>
+
+        <Tooltip title="Hướng dẫn sử dụng">
+          <Button 
+            icon={<IconHelp size={16} />} 
+            onClick={onGuide}
             className="hover-lift"
           />
         </Tooltip>

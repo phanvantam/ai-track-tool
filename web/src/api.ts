@@ -16,6 +16,8 @@ export interface ChangeEntry {
   oldPath?: string;
   insertions?: number;
   deletions?: number;
+  /** Thông báo khi file bị bỏ qua tính diff (quá lớn) */
+  diffSkipped?: string;
   directoryRename?: DirectoryRename;
   /** Khi có giá trị, entry này đại diện cho N files cùng folder đã gom nhóm */
   collapsedCount?: number;
@@ -125,6 +127,7 @@ export interface SnapshotDiffEntry {
 
 export interface AppConfig {
   storageDir: string | null;
+  bulkCollapseThreshold: number;
 }
 
 export interface ConfigPayload {
@@ -184,12 +187,12 @@ export async function getConfig(): Promise<ConfigPayload> {
   return readJson(await fetch("/api/config"));
 }
 
-export async function updateConfig(storageDir: string | null): Promise<ConfigPayload> {
+export async function updateConfig(storageDir: string | null, bulkCollapseThreshold?: number): Promise<ConfigPayload> {
   return readJson(
     await fetch("/api/config", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ storageDir }),
+      body: JSON.stringify({ storageDir, bulkCollapseThreshold }),
     }),
   );
 }
@@ -211,6 +214,17 @@ export async function getLock(sessionId: string): Promise<LockInfo | null> {
 export async function getSnapshotDiff(sessionId: string, fromSnapshotId: string, toSnapshotId: string): Promise<SnapshotDiffEntry[]> {
   const payload = await readJson<{ diffs: SnapshotDiffEntry[] }>(
     await fetch(`/api/diff-snapshots?sessionId=${encodeURIComponent(sessionId)}&from=${encodeURIComponent(fromSnapshotId)}&to=${encodeURIComponent(toSnapshotId)}`),
+  );
+  return payload.diffs;
+}
+
+/**
+ * So sánh manifest snapshot đã chọn với filesystem hiện tại.
+ * Trả về danh sách file sẽ thay đổi nếu restore về snapshot đó.
+ */
+export async function getSnapshotVsCurrentDiff(sessionId: string, snapshotId: string): Promise<SnapshotDiffEntry[]> {
+  const payload = await readJson<{ diffs: SnapshotDiffEntry[] }>(
+    await fetch(`/api/diff-snapshot-vs-current?sessionId=${encodeURIComponent(sessionId)}&snapshotId=${encodeURIComponent(snapshotId)}`),
   );
   return payload.diffs;
 }

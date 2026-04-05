@@ -9,6 +9,7 @@ export interface AppConfig {
   storageDir: string | null;
   projects: string[];
   gc: GarbageCollectionConfig;
+  bulkCollapseThreshold: number;
 }
 
 export interface ConfigDefaults {
@@ -26,6 +27,7 @@ const DEFAULT_CONFIG: AppConfig = {
     maxFullCopies: 1,
     autoRun: false,
   },
+  bulkCollapseThreshold: 10,
 };
 
 export function getConfigFilePath(): string {
@@ -82,6 +84,7 @@ export async function readAppConfig(): Promise<AppConfig> {
         maxFullCopies: typeof parsedGc.maxFullCopies === "number" ? parsedGc.maxFullCopies : DEFAULT_CONFIG.gc.maxFullCopies,
         autoRun: typeof parsedGc.autoRun === "boolean" ? parsedGc.autoRun : DEFAULT_CONFIG.gc.autoRun,
       },
+      bulkCollapseThreshold: typeof parsed.bulkCollapseThreshold === "number" ? parsed.bulkCollapseThreshold : DEFAULT_CONFIG.bulkCollapseThreshold,
     };
   } catch {
     return DEFAULT_CONFIG;
@@ -98,6 +101,7 @@ export async function writeAppConfig(config: AppConfig): Promise<AppConfig> {
       maxFullCopies: config.gc.maxFullCopies,
       autoRun: config.gc.autoRun,
     },
+    bulkCollapseThreshold: config.bulkCollapseThreshold,
   };
 
   const configFilePath = getConfigFilePath();

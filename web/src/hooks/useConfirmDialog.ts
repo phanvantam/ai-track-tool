@@ -4,6 +4,7 @@ export interface ConfirmState {
   isOpen: boolean;
   title: string;
   message: string;
+  type?: "info" | "success" | "warning" | "error";
   onConfirm?: () => void | Promise<void>;
   onCancel?: () => void;
   loading?: boolean;
@@ -11,7 +12,13 @@ export interface ConfirmState {
 
 interface UseConfirmDialogReturn {
   confirmState: ConfirmState;
-  openConfirm: (title: string, message: string, onConfirm?: () => void | Promise<void>, onCancel?: () => void) => void;
+  openConfirm: (
+    title: string,
+    message: string,
+    onConfirm?: () => void | Promise<void>,
+    type?: ConfirmState["type"],
+    onCancel?: () => void
+  ) => void;
   closeConfirm: () => void;
   setLoading: (loading: boolean) => void;
 }
@@ -34,12 +41,14 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
     title: string,
     message: string,
     onConfirm?: () => void | Promise<void>,
+    type: ConfirmState["type"] = "info",
     onCancel?: () => void,
   ) {
     setConfirmState({
       isOpen: true,
       title,
       message,
+      type,
       onConfirm,
       onCancel,
       loading: false,

@@ -51,11 +51,12 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
     }
 
     if (request.method === "POST" && requestUrl.pathname === "/api/config") {
-      const body = (await readJsonBody(request)) as { storageDir?: string | null } | null;
+      const body = (await readJsonBody(request)) as { storageDir?: string | null; bulkCollapseThreshold?: number } | null;
       const currentConfig = await readAppConfig();
       const config = await writeAppConfig({ 
         ...currentConfig,
-        storageDir: body?.storageDir?.trim() || null 
+        storageDir: body?.storageDir?.trim() || null,
+        bulkCollapseThreshold: typeof body?.bulkCollapseThreshold === "number" ? body.bulkCollapseThreshold : currentConfig.bulkCollapseThreshold,
       });
       writeJson(response, 200, {
         config,
@@ -106,6 +107,20 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       }
 
       writeJson(response, 200, { lock: await options.sessionManager.getLockInfo(sessionId) });
+      return;
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/diff-snapshot-vs-current") {
+      const sessionId = requestUrl.searchParams.get("sessionId");
+      const snapshotId = requestUrl.searchParams.get("snapshotId");
+
+      if (!sessionId || !snapshotId) {
+        throw new Error("Thiếu sessionId hoặc snapshotId");
+      }
+
+      writeJson(response, 200, {
+        diffs: await options.sessionManager.getSnapshotVsCurrentDiff(sessionId, snapshotId),
+      });
       return;
     }
 

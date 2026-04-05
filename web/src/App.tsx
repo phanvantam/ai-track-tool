@@ -75,11 +75,16 @@ export default function App() {
       diffManager.selectedPath &&
       diffManager.selectedPathType === "file"
     ) {
+      // Nếu file đã bị đánh dấu bỏ qua diff (quá lớn) → không cần gọi API
+      const change = activeSession.changes.find((c) => c.path === diffManager.selectedPath);
+      if (change?.diffSkipped) return;
+
       void diffManager.loadCurrentDiff(activeSession, diffManager.selectedPath);
     }
   }, [activeSession?.id, diffManager.selectedPath]);
 
-  // Tải snapshot diff khi snapshot selection thay đổi
+  // So sánh mốc hiện tại → mốc chọn: cho thấy khi restore sẽ thay đổi gì
+  // (from = active, to = selected) → added = file sẽ được thêm, deleted = file sẽ bị xóa
   useEffect(() => {
     if (
       activeSession &&
@@ -89,13 +94,13 @@ export default function App() {
     ) {
       void historyManager.loadSnapshotDiff(
         activeSession.id,
-        historyManager.selectedSnapshotId,
         activeSession.snapshotId,
+        historyManager.selectedSnapshotId,
       );
     }
   }, [activeSession?.id, historyManager.selectedSnapshotId]);
 
-  // Tải snapshot file diff khi path selection thay đổi
+  // Tải diff text file: cùng chiều active → selected
   useEffect(() => {
     if (
       activeSession &&
@@ -105,8 +110,8 @@ export default function App() {
     ) {
       void historyManager.loadSnapshotFileDiff(
         activeSession.id,
-        historyManager.selectedSnapshotId,
         activeSession.snapshotId,
+        historyManager.selectedSnapshotId,
         historyManager.selectedSnapshotDiffPath,
       );
     }
@@ -158,6 +163,7 @@ export default function App() {
           confirmDialog.setLoading(false);
         }
       },
+      "warning",
     );
   }
 
@@ -183,6 +189,7 @@ export default function App() {
           confirmDialog.setLoading(false);
         }
       },
+      "success",
     );
   }
 
@@ -208,6 +215,7 @@ export default function App() {
           confirmDialog.setLoading(false);
         }
       },
+      "error",
     );
   }
 
@@ -228,6 +236,7 @@ export default function App() {
             onSwitchSession={sessionManager.switchSession}
             onAddProject={() => setAddProjectOpened(true)}
             onSettings={() => setSettingsOpened(true)}
+            onGuide={() => setGuideOpened(true)}
             onRequestPause={openPauseConfirm}
             onRequestResume={openResumeConfirm}
             onRemoveSession={openRemoveConfirm}
@@ -291,7 +300,7 @@ export default function App() {
           if (!configManager.savingConfig) setSettingsOpened(false);
         }}
         config={configManager.config}
-        onSave={(storageDir) => configManager.saveConfig(storageDir)}
+        onSave={(storageDir, bulkCollapseThreshold) => configManager.saveConfig(storageDir, bulkCollapseThreshold)}
         loading={configManager.savingConfig}
       />
 
