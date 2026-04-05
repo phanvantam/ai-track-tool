@@ -91,16 +91,16 @@ export function ResizablePanelLayout({ fileTree, inspector }: ResizablePanelLayo
         <Splitter
           orientation="vertical"
           style={{ height: "100%" }}
-          onResizeEnd={(sizes) => {
+          onResize={(sizes) => {
             const next = [sizes[0] ?? 45, sizes[1] ?? 55] as [number, number];
             setTabletSizes(next);
             localStorage.setItem(TABLET_KEY, JSON.stringify(next));
           }}
         >
-          <Splitter.Panel min="30%" max="70%" size={`${tabletSizes[0]}%`} defaultSize="45%">
+          <Splitter.Panel min="20%" max="80%" size={tabletSizes[0]}>
             <div className="panel-section">{fileTree}</div>
           </Splitter.Panel>
-          <Splitter.Panel min="30%" size={`${tabletSizes[1]}%`} defaultSize="55%">
+          <Splitter.Panel min="20%" size={tabletSizes[1]}>
             <div className="panel-section">{inspector}</div>
           </Splitter.Panel>
         </Splitter>
@@ -114,16 +114,16 @@ export function ResizablePanelLayout({ fileTree, inspector }: ResizablePanelLayo
       <div style={{ height: "100%", padding: 4 }}>
         <Splitter
           style={{ height: "100%" }}
-          onResizeEnd={(sizes) => {
+          onResize={(sizes) => {
             const next = [sizes[0] ?? 25, sizes[1] ?? 75] as [number, number];
             setDesktopSizes(next);
             localStorage.setItem(DESKTOP_KEY, JSON.stringify(next));
           }}
         >
-          <Splitter.Panel min="15%" max="50%" size={`${desktopSizes[0]}%`} defaultSize="25%">
+          <Splitter.Panel min="10%" max="60%" size={desktopSizes[0]}>
             <div className="panel-section">{fileTree}</div>
           </Splitter.Panel>
-          <Splitter.Panel min="50%" size={`${desktopSizes[1]}%`} defaultSize="75%">
+          <Splitter.Panel min="30%" size={desktopSizes[1]}>
             <div className="panel-section">{inspector}</div>
           </Splitter.Panel>
         </Splitter>

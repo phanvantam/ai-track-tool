@@ -247,11 +247,21 @@ body,
 /* Thanh kéo splitter — tinh tế hơn */
 .ant-splitter-bar {
   background: var(--border-primary) !important;
-  transition: background var(--transition-fast) !important;
+  transition: all var(--transition-fast) !important;
+  width: 6px !important; /* Tăng diện tích nhận chuột cho thanh dọc */
+  margin: 0 -2px; /* Bù trừ để không làm lệch layout */
+  z-index: 10;
 }
 
-.ant-splitter-bar:hover {
+.ant-splitter-bar-vertical {
+  height: 6px !important; /* Tăng diện tích nhận chuột cho thanh ngang */
+  margin: -2px 0;
+}
+
+.ant-splitter-bar:hover, 
+.ant-splitter-bar-active {
   background: var(--accent-primary) !important;
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 /* Panel con trong splitter */
