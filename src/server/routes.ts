@@ -158,13 +158,14 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
     if (request.method === "GET" && requestUrl.pathname === "/api/diff") {
       const sessionId = requestUrl.searchParams.get("sessionId");
       const relativePath = requestUrl.searchParams.get("path");
+      const fullContext = requestUrl.searchParams.get("fullContext") === "1";
 
       if (!sessionId || !relativePath) {
         throw new Error("Thiếu sessionId hoặc path");
       }
 
       const session = options.sessionManager.getSession(sessionId);
-      const diff = await renderDiffForPath(session.changes, relativePath);
+      const diff = await renderDiffForPath(session.changes, relativePath, fullContext);
       writeJson(response, 200, { diff });
       return;
     }

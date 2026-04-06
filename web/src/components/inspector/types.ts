@@ -17,6 +17,10 @@ import type {
 export interface DiffTabProps {
   selectedChange: ChangeEntry | null;
   diff: string;
+  /** Chế độ xem toàn bộ file */
+  fullContext: boolean;
+  /** Toggle giữa diff rút gọn / toàn bộ file */
+  onToggleFullContext: () => void;
   onRollback: () => void;
   canRollback: boolean;
   loading: boolean;

@@ -144,6 +144,18 @@ export function FileTree({
       </div>
 
       <div className="filetree-footer">
+        {/* Thanh tiến trình khi đang xử lý thao tác */}
+        {loading && (
+          <div className="filetree-footer-progress">
+            <Progress 
+              percent={rollbackAllProgress > 0 ? rollbackAllProgress : 100} 
+              showInfo={rollbackAllProgress > 0}
+              status="active" 
+              strokeColor={rollbackAllProgress > 0 ? '#ff3b30' : { from: 'var(--accent-primary)', to: 'var(--accent-secondary)' }}
+              size="small"
+            />
+          </div>
+        )}
         <Flex gap="small">
           <Button
             style={{ flex: 1 }}

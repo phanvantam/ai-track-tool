@@ -308,6 +308,8 @@ export interface ChangeEntry {
   directoryRename?: DirectoryRename;
   insertions?: number;
   deletions?: number;
+  /** Tổng số dòng file hiện tại (sau thay đổi) */
+  totalLines?: number;
   /** Thông báo khi file bị bỏ qua tính diff (quá lớn) */
   diffSkipped?: string;
   /** Khi có giá trị, entry này đại diện cho N files cùng folder đã gom nhóm */

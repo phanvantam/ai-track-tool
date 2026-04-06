@@ -68,7 +68,7 @@ export default function App() {
     }
   }, [activeSession?.id]);
 
-  // Tải diff khi selected path thay đổi
+  // Tải diff khi selected path hoặc fullContext thay đổi
   useEffect(() => {
     if (
       activeSession &&
@@ -79,9 +79,9 @@ export default function App() {
       const change = activeSession.changes.find((c) => c.path === diffManager.selectedPath);
       if (change?.diffSkipped) return;
 
-      void diffManager.loadCurrentDiff(activeSession, diffManager.selectedPath);
+      void diffManager.loadCurrentDiff(activeSession, diffManager.selectedPath, diffManager.fullContext);
     }
-  }, [activeSession?.id, diffManager.selectedPath]);
+  }, [activeSession?.id, diffManager.selectedPath, diffManager.fullContext]);
 
   // So sánh mốc hiện tại → mốc chọn: cho thấy khi restore sẽ thay đổi gì
   // (from = active, to = selected) → added = file sẽ được thêm, deleted = file sẽ bị xóa
@@ -278,6 +278,8 @@ export default function App() {
                 : null
             }
             diffText={diffManager.diffText}
+            fullContext={diffManager.fullContext}
+            onToggleFullContext={() => diffManager.setFullContext(!diffManager.fullContext)}
             onLoadSessions={sessionManager.loadSessions}
           />
         }

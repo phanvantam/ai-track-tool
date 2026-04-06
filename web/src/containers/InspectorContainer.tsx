@@ -12,12 +12,16 @@ interface InspectorContainerProps {
   selectedPathType: "file" | "folder" | null;
   selectedChange: any; // ChangeEntry | null
   diffText: string;
+  /** Chế độ xem toàn bộ file */
+  fullContext: boolean;
+  /** Toggle fullContext bật/tắt */
+  onToggleFullContext: () => void;
   onLoadSessions: () => Promise<void>;
 }
 
 /**
- * Container cho Inspector — chỉ quản lý Diff + rollback.
- * History/Health/Reflog đã chuyển sang sidebar.
+ * Container cho Inspector — quản lý Diff + rollback.
+ * Truyền fullContext state xuống DiffPanel.
  */
 export function InspectorContainer({
   session,
@@ -25,6 +29,8 @@ export function InspectorContainer({
   selectedPathType,
   selectedChange,
   diffText,
+  fullContext,
+  onToggleFullContext,
   onLoadSessions,
 }: InspectorContainerProps) {
   const [loading, setLoading] = useState(false);
@@ -60,6 +66,8 @@ export function InspectorContainer({
       selectedPath={selectedPath}
       selectedChange={selectedChange}
       diff={diffText}
+      fullContext={fullContext}
+      onToggleFullContext={onToggleFullContext}
       onRollback={handleRollback}
       canRollback={canRollback}
       loading={loading}

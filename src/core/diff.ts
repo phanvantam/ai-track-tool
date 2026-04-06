@@ -8,6 +8,8 @@ export interface DiffLineStats {
   insertions: number;
   deletions: number;
   changeCount: number;
+  /** Tổng số dòng file hiện tại (sau thay đổi) */
+  totalLines: number;
 }
 
 async function readText(filePath: string | null): Promise<string> {
@@ -33,7 +35,7 @@ function lineCount(text: string): number {
   return count;
 }
 
-export async function renderChangeDiff(change: ChangeEntry): Promise<string> {
+export async function renderChangeDiff(change: ChangeEntry, fullContext = false): Promise<string> {
   if (change.isBinary) {
     return `${change.path}\nBinary files differ`;
   }
@@ -46,17 +48,19 @@ export async function renderChangeDiff(change: ChangeEntry): Promise<string> {
     return `${DIFF_SKIPPED_PREFIX}File vượt quá ${MAX_DIFF_LINES} dòng — bỏ qua tính diff.`;
   }
 
-  return createPatch(change.path, beforeText, afterText, "snapshot", "current");
+  // fullContext = true → hiển thị toàn bộ file, context cực lớn
+  const contextSize = fullContext ? 999999 : undefined;
+  return createPatch(change.path, beforeText, afterText, "snapshot", "current", { context: contextSize });
 }
 
-export async function renderDiffForPath(changes: ChangeEntry[], relativePath: string): Promise<string> {
+export async function renderDiffForPath(changes: ChangeEntry[], relativePath: string, fullContext = false): Promise<string> {
   const change = changes.find((item) => item.path === relativePath);
 
   if (!change) {
     throw new Error(`Không tìm thấy diff cho file: ${relativePath}`);
   }
 
-  return renderChangeDiff(change);
+  return renderChangeDiff(change, fullContext);
 }
 
 export async function renderSnapshotDiffForPath(
@@ -94,28 +98,34 @@ export async function renderSnapshotDiffForPath(
 }
 
 export function countDiffLines(diffText: string): DiffLineStats {
-  const stats = diffText.split(/\r?\n/).reduce<DiffLineStats>((currentStats, line) => {
+  let insertions = 0;
+  let deletions = 0;
+  /** Dòng context (không thay đổi) — dùng để tính totalLines */
+  let contextLines = 0;
+
+  for (const line of diffText.split(/\r?\n/)) {
+    // Bỏ qua header lines
     if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@") || line.startsWith("Index:")) {
-      return currentStats;
+      continue;
     }
 
     if (line.startsWith("+") && !line.startsWith("+++")) {
-      currentStats.insertions += 1;
+      insertions += 1;
+    } else if (line.startsWith("-") && !line.startsWith("---")) {
+      deletions += 1;
+    } else if (line.startsWith(" ")) {
+      // Context line = dòng không đổi giữa snapshot và hiện tại
+      contextLines += 1;
     }
+  }
 
-    if (line.startsWith("-") && !line.startsWith("---")) {
-      currentStats.deletions += 1;
-    }
-
-    currentStats.changeCount = currentStats.insertions + currentStats.deletions;
-    return currentStats;
-  }, {
-    insertions: 0,
-    deletions: 0,
-    changeCount: 0,
-  });
-
-  return stats;
+  return {
+    insertions,
+    deletions,
+    changeCount: insertions + deletions,
+    // File hiện tại = context (dòng giữ nguyên) + insertions (dòng mới thêm)
+    totalLines: contextLines + insertions,
+  };
 }
 
 export async function renderDiffReport(changes: ChangeEntry[]): Promise<string> {

@@ -626,9 +626,47 @@ body,
   margin: 0;
   padding: 1px 12px;
   white-space: pre;
-  display: block;
+  display: flex;
+  align-items: stretch;
   border-left: 3px solid transparent;
   transition: background var(--transition-fast);
+}
+
+/* Cột số dòng */
+.diff-line-num {
+  display: inline-block;
+  width: 44px;
+  min-width: 44px;
+  text-align: right;
+  padding-right: 10px;
+  color: var(--text-muted);
+  user-select: none;
+  opacity: 0.6;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Số dòng cũ (snapshot) — khác màu khi là dòng xóa */
+.diff-removed .diff-line-num-old {
+  color: var(--diff-removed-text);
+  opacity: 0.8;
+}
+
+/* Số dòng mới (hiện tại) — khác màu khi là dòng thêm */
+.diff-added .diff-line-num-new {
+  color: var(--diff-added-text);
+  opacity: 0.8;
+}
+
+/* Nội dung diff */
+.diff-line-content {
+  flex: 1;
+  white-space: pre;
+}
+
+/* Dòng header/meta không có cột số → dùng full width, indent bằng tổng chiều rộng 2 cột */
+.diff-line-full {
+  padding-left: 98px;
 }
 
 .diff-line:hover {
@@ -665,6 +703,32 @@ body,
   padding: 10px 12px;
   border-top: 1px solid var(--border-primary);
   background: var(--bg-elevated);
+}
+
+/* Thanh tiến trình mảnh nằm kẹt dưới header DiffPanel */
+.diff-progress-bar {
+  width: 100%;
+  line-height: 0;
+}
+
+.diff-progress-bar .ant-progress {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+}
+
+.diff-progress-bar .ant-progress-outer {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Thanh tiến trình trong footer FileTree */
+.filetree-footer-progress {
+  margin-bottom: 8px;
+}
+
+.filetree-footer-progress .ant-progress {
+  margin: 0 !important;
 }
 
 /* =========================================================

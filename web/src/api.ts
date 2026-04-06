@@ -16,6 +16,8 @@ export interface ChangeEntry {
   oldPath?: string;
   insertions?: number;
   deletions?: number;
+  /** Tổng số dòng file hiện tại (sau thay đổi) */
+  totalLines?: number;
   /** Thông báo khi file bị bỏ qua tính diff (quá lớn) */
   diffSkipped?: string;
   directoryRename?: DirectoryRename;
@@ -239,10 +241,10 @@ export async function getSnapshotFileDiff(sessionId: string, fromSnapshotId: str
   return payload.diff;
 }
 
-export async function getDiff(sessionId: string, path: string): Promise<string> {
-  const payload = await readJson<{ diff: string }>(
-    await fetch(`/api/diff?sessionId=${encodeURIComponent(sessionId)}&path=${encodeURIComponent(path)}`),
-  );
+export async function getDiff(sessionId: string, path: string, fullContext = false): Promise<string> {
+  const params = new URLSearchParams({ sessionId, path });
+  if (fullContext) params.set("fullContext", "1");
+  const payload = await readJson<{ diff: string }>(await fetch(`/api/diff?${params.toString()}`));
   return payload.diff;
 }
 

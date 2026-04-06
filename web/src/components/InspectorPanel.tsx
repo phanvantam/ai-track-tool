@@ -6,6 +6,8 @@ interface InspectorPanelProps {
   selectedPath: string | null;
   selectedChange: ChangeEntry | null;
   diff: string;
+  fullContext: boolean;
+  onToggleFullContext: () => void;
   onRollback: () => void;
   canRollback: boolean;
   loading: boolean;
@@ -13,12 +15,14 @@ interface InspectorPanelProps {
 
 /**
  * Panel hiển thị diff trực tiếp — không cần tabs.
- * History/Health/Reflog đã chuyển sang sidebar.
+ * Hỗ trợ chuyển đổi giữa xem diff rút gọn và toàn bộ file.
  */
 export function InspectorPanel({
   selectedPath,
   selectedChange,
   diff,
+  fullContext,
+  onToggleFullContext,
   onRollback,
   canRollback,
   loading,
@@ -37,6 +41,8 @@ export function InspectorPanel({
       <DiffTab
         selectedChange={selectedChange}
         diff={diff}
+        fullContext={fullContext}
+        onToggleFullContext={onToggleFullContext}
         onRollback={onRollback}
         canRollback={canRollback}
         loading={loading}
