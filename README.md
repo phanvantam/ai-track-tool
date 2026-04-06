@@ -12,7 +12,6 @@ ai-track web
 
 ### 2. Cài đặt Local trên Mac (không cần npm publish)
 ```bash
-cd /Users/tampv/Projects/ai-track-tool
 
 # Build dự án
 npm run build:all
