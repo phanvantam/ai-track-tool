@@ -46,6 +46,22 @@ function getTopLevelDir(filePath: string): string | null {
   return firstSlash === -1 ? null : filePath.substring(0, firstSlash);
 }
 
+/**
+ * Materialize snapshot file, trả null nếu file bị thiếu trên disk (snapshot hỏng).
+ * Giúp getChanges() không crash khi snapshot data bị corrupt.
+ */
+async function safeMaterialize(storagePath: string, snapshotId: string, filePath: string): Promise<string | null> {
+  try {
+    return await materializeSnapshotFile(storagePath, snapshotId, filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      console.warn(`[compare] Snapshot file bị thiếu, skip: ${filePath} (chạy fsck --repair để sửa)`);
+      return null;
+    }
+    throw error;
+  }
+}
+
 export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]> {
   const state = await readState(targetPathInput);
   const manifest = await readManifest(state.storagePath, state.activeSnapshotId);
@@ -65,7 +81,13 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
     // File exists at same path
     if (currentFile) {
       if (currentFile.path !== snapshotFile.path && currentFile.hash === snapshotFile.hash) {
-        const beforeAbsolutePath = await materializeSnapshotFile(state.storagePath, manifest.snapshotId, snapshotFile.path);
+        const beforeAbsolutePath = await safeMaterialize(state.storagePath, manifest.snapshotId, snapshotFile.path);
+        // Skip entry nếu snapshot file bị hỏng
+        if (!beforeAbsolutePath) {
+          processedPaths.add(snapshotFile.path);
+          processedPaths.add(currentFile.path);
+          continue;
+        }
         changes.push({
           path: currentFile.path,
           type: "renamed",
@@ -80,14 +102,17 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
       }
 
       if (currentFile.hash !== snapshotFile.hash) {
-        const beforeAbsolutePath = await materializeSnapshotFile(state.storagePath, manifest.snapshotId, snapshotFile.path);
-        changes.push({
-          path: snapshotFile.path,
-          type: "modified",
-          isBinary: snapshotFile.isBinary || currentFile.isBinary,
-          beforeAbsolutePath,
-          afterAbsolutePath: currentFile.absolutePath,
-        });
+        const beforeAbsolutePath = await safeMaterialize(state.storagePath, manifest.snapshotId, snapshotFile.path);
+        // Skip nếu snapshot file bị hỏng — không thể tính diff
+        if (beforeAbsolutePath) {
+          changes.push({
+            path: snapshotFile.path,
+            type: "modified",
+            isBinary: snapshotFile.isBinary || currentFile.isBinary,
+            beforeAbsolutePath,
+            afterAbsolutePath: currentFile.absolutePath,
+          });
+        }
       }
       processedPaths.add(snapshotFile.path);
       continue;
@@ -98,29 +123,33 @@ export async function getChanges(targetPathInput: string): Promise<ChangeEntry[]
     const renamedCandidate = candidatesWithSameHash.find((candidate) => !snapshotMap.has(candidate.path));
 
     if (renamedCandidate) {
-      const beforeAbsolutePath = await materializeSnapshotFile(state.storagePath, manifest.snapshotId, snapshotFile.path);
-      changes.push({
-        path: renamedCandidate.path,
-        type: "renamed",
-        isBinary: snapshotFile.isBinary,
-        beforeAbsolutePath,
-        afterAbsolutePath: renamedCandidate.absolutePath,
-        oldPath: snapshotFile.path,
-      });
+      const beforeAbsolutePath = await safeMaterialize(state.storagePath, manifest.snapshotId, snapshotFile.path);
+      if (beforeAbsolutePath) {
+        changes.push({
+          path: renamedCandidate.path,
+          type: "renamed",
+          isBinary: snapshotFile.isBinary,
+          beforeAbsolutePath,
+          afterAbsolutePath: renamedCandidate.absolutePath,
+          oldPath: snapshotFile.path,
+        });
+      }
       processedPaths.add(snapshotFile.path);
       processedPaths.add(renamedCandidate.path);
       continue;
     }
 
     // File was deleted
-    const beforeAbsolutePath = await materializeSnapshotFile(state.storagePath, manifest.snapshotId, snapshotFile.path);
-    changes.push({
-      path: snapshotFile.path,
-      type: "deleted",
-      isBinary: snapshotFile.isBinary,
-      beforeAbsolutePath,
-      afterAbsolutePath: null,
-    });
+    const beforeAbsolutePath = await safeMaterialize(state.storagePath, manifest.snapshotId, snapshotFile.path);
+    if (beforeAbsolutePath) {
+      changes.push({
+        path: snapshotFile.path,
+        type: "deleted",
+        isBinary: snapshotFile.isBinary,
+        beforeAbsolutePath,
+        afterAbsolutePath: null,
+      });
+    }
     processedPaths.add(snapshotFile.path);
   }
 
